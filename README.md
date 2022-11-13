@@ -25,13 +25,13 @@ import {PulsoidSocket} from 'pulsoid-socket';
 
 const pulsocket = new PulsoidSocket('YOUR_AUTH_TOKEN');
 
-pulsocket.onOpen((event) => {
+pulsocket.on('open', ((event) => {
   console.log('Start listening to heart rate data');
 });
-pulsocket.on('message', (event) => {
-  console.log(`Current heart rate is ${event.data}`);
+pulsocket.on('message', (message) => {
+  console.log(`Current heart rate is ${message.heartRate}`);
 });
-pulsocket.onClose((event) => {
+pulsocket.on('close', (event) => {
   console.log('Stop listening to heart rate data');
 });
 
@@ -85,7 +85,7 @@ interface Message {
 `PulsoidSocketError` interface:
 
 ```typescript
-interface PsError {
+interface PulsoidSocketError {
   code: number; // Error code
 }
 ```
