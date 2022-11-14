@@ -42,14 +42,15 @@ pulsocket.connect();
 
 ### List of available Methods on PulsoidSocket instance
 
-| Method                                                       | Description                                   |
-| ------------------------------------------------------------ | --------------------------------------------- |
-| `constructor(token: string, options?: PulsoidSocketOptions)` | Creates a new instance of the client.         |
-| `connect()`                                                  | Connects to the websocket server              |
-| `disconnect()`                                               | Disconnects from the websocket server         |
-| `on(eventType: EventType, callback: Callback `               | Adds a listener for the specified event type. |
+| Method                                                       | Description                                                                                               |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `constructor(token: string, options?: PulsoidSocketOptions)` | Creates a new instance of the client.                                                                     |
+| `connect()`                                                  | Connects to the websocket server                                                                          |
+| `disconnect()`                                               | Disconnects from the websocket server                                                                     |
+| `on(eventType: EventType, callback: Callback `               | Adds a listener for the specified event type.                                                             |
+| `off(eventType: EventType, callback?: Callback)`             | Removes a listener for the specified event type. Removes all handlers if callback parameter is not passed |
 | Callback function to be called when an error occurs          |
-| `isConnected()`                                              | Returns true if socket connection is alive    |
+| `isConnected()`                                              | Returns true if socket connection is alive                                                                |
 
 ### List of available `EventType`'s for `on` method
 
@@ -64,10 +65,7 @@ pulsocket.connect();
 
 ```typescript
 interface PulsoidSocketOptions {
-  test?: boolean; // If true, constntly passes test data. Usefull when no monitor is available
   format?: 'plain' | 'json'; // default: 'json'
-
-  reconnect?: boolean; // If true, automatically reconnects when the connection is closed. default: true
 }
 ```
 

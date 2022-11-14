@@ -1,10 +1,30 @@
 export type PulsoidSocketOptions = {
-  test?: boolean;
   format?: 'json' | 'plain';
-  reconnect?: boolean;
+};
+
+export type PulsoidMessageJsonResponse = {
+  heartRate: number;
+  measuredAt: number;
 };
 
 export type PulsoidSocketEventType = 'open' | 'message' | 'error' | 'close';
+export type PulsoidSocketEventHandler =
+  | typeof WebSocket.prototype.onopen
+  | ((data: {heartRate: number; measuredAt: number}) => void)
+  | typeof WebSocket.prototype.onerror
+  | typeof WebSocket.prototype.onclose;
+
+const normalizeMessageBeData = (data: string) => {
+  try {
+    const message = JSON.parse(data);
+    return {
+      heartRate: message?.data?.heart_rate,
+      measuredAt: message?.measured_at,
+    };
+  } catch {
+    return {};
+  }
+};
 
 export class PulsoidSocket {
   private websocket: WebSocket;
@@ -13,44 +33,91 @@ export class PulsoidSocket {
     return `wss://dev.pulsoid.net/api/v1/data/real_time?access_token=${this.token}`;
   }
 
-  private eventTypeToEventMap: {
-    [key in PulsoidSocketEventType]: (
-      callback:
-        | typeof this.websocket.onopen
-        | typeof this.websocket.onmessage
-        | typeof this.websocket.onerror
-        | typeof this.websocket.onclose
-        | null
-    ) => void;
-  } = {
-    open: (callback: typeof this.websocket.onopen) => {
-      this.websocket.onopen = callback;
-    },
-    message: (callback: typeof this.websocket.onmessage) => {
-      this.websocket.onmessage = callback;
-    },
-    error: (callback: typeof this.websocket.onerror) => {
-      this.websocket.onerror = callback;
-    },
-    close: (callback: typeof this.websocket.onclose) => {
-      this.websocket.onclose = callback;
-    },
+  private eventTypeToEventHandlersMap: {
+    [key in PulsoidSocketEventType]: PulsoidSocketEventHandler[];
+  } = {open: [], message: [], error: [], close: []};
+
+  private addOnOpenEventHandler = () => {
+    this.websocket.onopen = (event) => {
+      this.eventTypeToEventHandlersMap.open?.forEach((callback) =>
+        callback?.call(this.websocket, event)
+      );
+    };
   };
 
-  constructor(private token: string, private options?: PulsoidSocketOptions) {}
+  private addOnCloseEventHandler = () => {
+    this.websocket.onclose = (event) => {
+      this.eventTypeToEventHandlersMap.close?.forEach((callback) =>
+        callback?.call(this.websocket, event)
+      );
+    };
+  };
 
-  on(eventType: PulsoidSocketEventType, callback: (event: Event) => void) {
-    const eventFn = this.eventTypeToEventMap[eventType];
+  private addOnMessageEventHandler = () => {
+    this.websocket.onmessage = (event) => {
+      this.eventTypeToEventHandlersMap.message?.forEach((callback) => {
+        const data = normalizeMessageBeData(event?.data);
+        const messageData =
+          this.options.format === 'json' ? data : `${data.heartRate}`;
 
-    if (this.websocket) {
-      this.websocket.onopen = callback;
+        callback?.call(this.websocket, messageData);
+      });
+    };
+  };
+
+  private addOnErrorEventHandler = () => {
+    this.websocket.onerror = (event) => {
+      this.eventTypeToEventHandlersMap.error?.forEach((callback) =>
+        callback?.call(this.websocket, event)
+      );
+    };
+  };
+
+  constructor(
+    private token: string,
+    private options: PulsoidSocketOptions = {}
+  ) {
+    if (options.format === undefined) {
+      options.format = 'json';
+    }
+  }
+
+  on(
+    eventType: 'message',
+    callback: (data: PulsoidMessageJsonResponse) => void
+  ): void;
+  on(eventType: 'open', callback: typeof WebSocket.prototype.onopen): void;
+  on(eventType: 'close', callback: typeof WebSocket.prototype.onclose): void;
+  on(eventType: 'error', callback: typeof WebSocket.prototype.onerror): void;
+  on(eventType: PulsoidSocketEventType, callback: PulsoidSocketEventHandler) {
+    this.eventTypeToEventHandlersMap[eventType].push(callback);
+  }
+
+  off(
+    eventType: 'message',
+    callback?: (data: PulsoidMessageJsonResponse) => void
+  ): void;
+  off(eventType: 'open', callback?: typeof WebSocket.prototype.onopen): void;
+  off(eventType: 'close', callback?: typeof WebSocket.prototype.onclose): void;
+  off(eventType: 'error', callback?: typeof WebSocket.prototype.onerror): void;
+  off(eventType: PulsoidSocketEventType, callback?: PulsoidSocketEventHandler) {
+    if (callback) {
+      this.eventTypeToEventHandlersMap[eventType] =
+        this.eventTypeToEventHandlersMap[eventType].filter(
+          (cb) => cb !== callback
+        );
     } else {
-      // Implement a queue to assign the callback to the event when the socket is connected
+      this.eventTypeToEventHandlersMap[eventType] = [];
     }
   }
 
   connect() {
     this.websocket = new WebSocket(this.url);
+
+    this.addOnCloseEventHandler();
+    this.addOnMessageEventHandler();
+    this.addOnOpenEventHandler();
+    this.addOnErrorEventHandler();
   }
 
   disconnect() {
