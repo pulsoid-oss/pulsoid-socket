@@ -121,10 +121,10 @@ export class PulsoidSocket {
   }
 
   disconnect() {
-    this.websocket.close();
+    this.websocket?.close();
   }
 
   isConnected = () => {
-    return this.websocket.readyState === WebSocket.OPEN;
+    return this.websocket?.readyState === WebSocket.OPEN;
   };
 }
