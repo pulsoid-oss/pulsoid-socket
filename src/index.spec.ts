@@ -227,6 +227,112 @@ describe('Pusloid Socket', () => {
       });
     });
 
+    describe('"online"', () => {
+      it('should call handler after receiving first message from webSocket', async () => {
+        openConnection();
+        const pulsocket = new PulsoidSocket(TEST_TOKEN);
+        const mockOnOnline = jest.fn();
+
+        pulsocket.on('online', mockOnOnline);
+
+        pulsocket.connect();
+        await waitForConnection();
+
+        expect(mockOnOnline).not.toHaveBeenCalled();
+
+        webSocketServerMock.send(
+          JSON.stringify({data: {heart_rate: 60}, measured_at: 1609459200000})
+        );
+
+        expect(mockOnOnline).toHaveBeenCalled();
+        expect(mockOnOnline).toHaveBeenCalledTimes(1);
+
+        webSocketServerMock.send(
+          JSON.stringify({data: {heart_rate: 76}, measured_at: 1609459201000})
+        );
+
+        expect(mockOnOnline).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    describe('"offline"', () => {
+      it('should call handler after receiving first message from webSocket', async () => {
+        jest.useFakeTimers();
+        openConnection();
+        const pulsocket = new PulsoidSocket(TEST_TOKEN);
+        const mockOnOffline = jest.fn();
+
+        pulsocket.on('offline', mockOnOffline);
+
+        pulsocket.connect();
+
+        jest.runAllTimers();
+        await waitForConnection();
+        jest.runAllTimers();
+
+        expect(jest.getTimerCount()).toBe(0);
+
+        webSocketServerMock.send(
+          JSON.stringify({data: {heart_rate: 60}, measured_at: 1609459200000})
+        );
+
+        expect(mockOnOffline).not.toHaveBeenCalled();
+
+        expect(jest.getTimerCount()).toBe(1);
+        jest.runAllTimers();
+
+        expect(mockOnOffline).toHaveBeenCalled();
+        expect(mockOnOffline).toHaveBeenCalledTimes(1);
+        jest.useRealTimers();
+      });
+
+      it('should call handler when connection is closed if heart rate monitor is online', async () => {
+        openConnection();
+        const pulsocket = new PulsoidSocket(TEST_TOKEN);
+        const mockOnOffline = jest.fn();
+
+        pulsocket.on('offline', mockOnOffline);
+
+        pulsocket.connect();
+
+        await waitForConnection();
+
+        expect(jest.getTimerCount()).toBe(0);
+
+        webSocketServerMock.send(
+          JSON.stringify({data: {heart_rate: 60}, measured_at: 1609459200000})
+        );
+
+        expect(mockOnOffline).not.toHaveBeenCalled();
+
+        pulsocket.disconnect();
+        await webSocketServerMock.closed;
+
+        expect(mockOnOffline).toHaveBeenCalled();
+        expect(mockOnOffline).toHaveBeenCalledTimes(1);
+      });
+
+      it('should not call handler when connection is closed and heart rate monitor is offline', async () => {
+        openConnection();
+        const pulsocket = new PulsoidSocket(TEST_TOKEN);
+        const mockOnOffline = jest.fn();
+
+        pulsocket.on('offline', mockOnOffline);
+
+        pulsocket.connect();
+
+        await waitForConnection();
+
+        expect(jest.getTimerCount()).toBe(0);
+
+        expect(mockOnOffline).not.toHaveBeenCalled();
+
+        pulsocket.disconnect();
+
+        expect(mockOnOffline).not.toHaveBeenCalled();
+      });
+    });
+
     it('should be able to call all assigned hanndlers', async () => {
       openConnection();
       const pulsocket = new PulsoidSocket(TEST_TOKEN);
