@@ -53,4 +53,11 @@ pulsocket.on('close', (data) => {
   document.body.appendChild(reconnectBtn);
 });
 
+pulsocket.on('online', () => {
+  console.log('online');
+});
+pulsocket.on('offline', () => {
+  console.log('offline');
+});
+
 pulsocket.connect();

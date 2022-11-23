@@ -53,12 +53,14 @@ pulsocket.connect();
 
 ### List of available `EventType`'s for `on` method
 
-| Event Type  | Callback Type                         | Description                               |
-| ----------- | ------------------------------------- | ----------------------------------------- |
-| `'open'`    | `(event: Event) => void`              | Called when the connection is established |
-| `'message'` | `(event: Message) => void`            | Called when a message is received         |
-| `'close'`   | `(event: CloseEvent) => void`         | Called when the connection is closed      |
-| `'error'`   | `(error: PulsoidSocketError) => void` | Called when an error occurs               |
+| Event Type  | Callback Type                         | Description                                                                                         |
+| ----------- | ------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `'open'`    | `(event: Event) => void`              | Called when the connection is established                                                           |
+| `'message'` | `(event: Message) => void`            | Called when a message is received                                                                   |
+| `'close'`   | `(event: CloseEvent) => void`         | Called when the connection is closed                                                                |
+| `'error'`   | `(error: PulsoidSocketError) => void` | Called when an error occurs                                                                         |
+| `'online'`  | `() => void`                          | Called when heart rate monitor device sends first message                                           |
+| `'offline'` | `() => void`                          | Called when there are no incomming messages from heart rate monitor device for more than 30 seconds |
 
 `PulsoidSocketOptions` interface:
 
