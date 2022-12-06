@@ -8,6 +8,7 @@ module.exports = {
     filename: 'index.js',
     library: 'pulsoid-socket',
     libraryTarget: 'umd',
+    umdNamedDefine: true,
   },
   module: {
     rules: [

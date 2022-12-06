@@ -1,13 +1,14 @@
 {
   "name": "@pulsoid/socket",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Web Socket client for client intergation with Pulsoid heart rate API",
   "main": "dist/index.js",
+  "types": "dist/src/index.d",
   "repository": "git@github.com:pulsoid-oss/pulsoid-socket.git",
   "author": "xmityaz",
   "license": "MIT",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
+    "build": "rm -rf ./dist | webpack --config webpack.config.js",
     "start-example": "webpack serve --config example/webpack.config.js",
     "test": "jest"
   },
