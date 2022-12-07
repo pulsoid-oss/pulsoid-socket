@@ -1,5 +1,5 @@
 import WS from 'jest-websocket-mock';
-import {PulsoidSocket} from './index';
+import PulsoidSocket from './index';
 
 const TEST_TOKEN = 'token';
 let webSocketServerMock: WS;

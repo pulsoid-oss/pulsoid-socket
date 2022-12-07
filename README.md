@@ -21,7 +21,7 @@ yarn add pulsoid-socket
 In order to use the client, you need to have a valid authorization token. Check out how to get one [here](https://github.com/pulsoid-oss/pulsoid-api/wiki/OAuth2-Authorization-Code-Grant);
 
 ```javascript
-import {PulsoidSocket} from 'pulsoid-socket';
+import PulsoidSocket from 'pulsoid-socket';
 
 const pulsocket = new PulsoidSocket('YOUR_AUTH_TOKEN');
 

@@ -1,4 +1,4 @@
-import {PulsoidSocket} from '../src';
+import PulsoidSocket from '../src';
 
 const PULSOID_TOKEN = 'YOUR_PULSOID_TOKEN';
 
