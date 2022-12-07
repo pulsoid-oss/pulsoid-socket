@@ -1,9 +1,5 @@
 import {debounce} from './utils/debounce';
 
-export type PulsoidSocketOptions = {
-  format?: 'json' | 'plain';
-};
-
 export type PulsoidMessageJsonResponse = {
   heartRate: number;
   measuredAt: number;
@@ -11,7 +7,7 @@ export type PulsoidMessageJsonResponse = {
 
 export type PulsoidSocketEventType =
   | 'open'
-  | 'message'
+  | 'heart-rate'
   | 'error'
   | 'close'
   | 'online'
@@ -46,7 +42,14 @@ class PulsoidSocket {
 
   private eventTypeToEventHandlersMap: {
     [key in PulsoidSocketEventType]: PulsoidSocketEventHandler[];
-  } = {open: [], message: [], error: [], close: [], online: [], offline: []};
+  } = {
+    open: [],
+    'heart-rate': [],
+    error: [],
+    close: [],
+    online: [],
+    offline: [],
+  };
 
   private debounceOfflineEvent = debounce(
     () => this.onOfflineEventHandler(),
@@ -100,19 +103,17 @@ class PulsoidSocket {
     this.debounceOfflineEvent();
   };
 
-  private onMessageEventHandler = (event: MessageEvent) => {
+  private onHeartRateEventHandler = (event: MessageEvent) => {
     const data = normalizeMessageBeData(event?.data);
-    const messageData =
-      this.options.format === 'json' ? data : `${data.heartRate}`;
 
-    this.eventTypeToEventHandlersMap.message?.forEach((callback) => {
-      callback?.call(this.websocket, messageData);
+    this.eventTypeToEventHandlersMap['heart-rate']?.forEach((callback) => {
+      callback?.call(this.websocket, data);
     });
 
     this.onOnlineEventHandler();
   };
   private addOnMessageEventHandler = () => {
-    this.websocket.addEventListener('message', this.onMessageEventHandler);
+    this.websocket.addEventListener('message', this.onHeartRateEventHandler);
   };
 
   private onErrorEventHandler = (event: Event) => {
@@ -134,21 +135,17 @@ class PulsoidSocket {
   private clearEventHandlers() {
     this.websocket.removeEventListener('open', this.onOpenEventHandler);
     this.websocket.removeEventListener('close', this.onCloseEventHandler);
-    this.websocket.removeEventListener('message', this.onMessageEventHandler);
+    this.websocket.removeEventListener(
+      'heart-rate',
+      this.onHeartRateEventHandler
+    );
     this.websocket.removeEventListener('error', this.onErrorEventHandler);
   }
 
-  constructor(
-    private token: string,
-    private options: PulsoidSocketOptions = {}
-  ) {
-    if (options.format === undefined) {
-      options.format = 'json';
-    }
-  }
+  constructor(private token: string) {}
 
   on(
-    eventType: 'message',
+    eventType: 'heart-rate',
     callback: (data: PulsoidMessageJsonResponse) => void
   ): void;
   on(eventType: 'open', callback: typeof WebSocket.prototype.onopen): void;
@@ -161,7 +158,7 @@ class PulsoidSocket {
   }
 
   off(
-    eventType: 'message',
+    eventType: 'heart-rate',
     callback?: (data: PulsoidMessageJsonResponse) => void
   ): void;
   off(eventType: 'open', callback?: typeof WebSocket.prototype.onopen): void;
