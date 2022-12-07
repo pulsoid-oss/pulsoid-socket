@@ -6,8 +6,12 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'index.js',
-    library: 'pulsoid-socket',
-    libraryTarget: 'umd',
+    globalObject: 'this',
+    library: {
+      name: 'PulsoidSocket',
+      type: 'umd',
+      export: 'default',
+    },
     umdNamedDefine: true,
   },
   module: {

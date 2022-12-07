@@ -36,7 +36,7 @@ const normalizeMessageBeData = (data: string) => {
   }
 };
 
-export class PulsoidSocket {
+class PulsoidSocket {
   private websocket: WebSocket;
   private online = false;
 
@@ -198,3 +198,5 @@ export class PulsoidSocket {
     return this.online;
   };
 }
+
+export default PulsoidSocket;
