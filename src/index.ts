@@ -76,16 +76,16 @@ class PulsoidSocket {
   };
 
   private onCloseEventHandler = (event: CloseEvent) => {
+    if (this.online) {
+      this.onOfflineEventHandler();
+      this.debounceOfflineEvent.cancel();
+    }
+
     this.eventTypeToEventHandlersMap.close?.forEach((callback) =>
       callback?.call(this.websocket, event)
     );
 
     this.clearEventHandlers();
-
-    if (this.online) {
-      this.onOfflineEventHandler();
-      this.debounceOfflineEvent.cancel();
-    }
   };
   private addOnCloseEventHandler = () => {
     this.websocket.addEventListener('close', this.onCloseEventHandler);
@@ -106,11 +106,11 @@ class PulsoidSocket {
   private onHeartRateEventHandler = (event: MessageEvent) => {
     const data = normalizeMessageBeData(event?.data);
 
+    this.onOnlineEventHandler();
+
     this.eventTypeToEventHandlersMap['heart-rate']?.forEach((callback) => {
       callback?.call(this.websocket, data);
     });
-
-    this.onOnlineEventHandler();
   };
   private addOnMessageEventHandler = () => {
     this.websocket.addEventListener('message', this.onHeartRateEventHandler);

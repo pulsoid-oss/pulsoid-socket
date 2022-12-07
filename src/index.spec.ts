@@ -253,6 +253,34 @@ describe('Pusloid Socket', () => {
 
         expect(mockOnOnline).toHaveBeenCalledTimes(1);
       });
+
+      it('should fire before the "heart-rate" event', async () => {
+        openConnection();
+        const pulsocket = new PulsoidSocket(TEST_TOKEN);
+        const mockOnOnline = jest.fn();
+        const mockOnHeartRate = jest.fn();
+
+        pulsocket.on('heart-rate', mockOnHeartRate);
+        pulsocket.on('online', mockOnOnline);
+
+        pulsocket.connect();
+        await waitForConnection();
+
+        expect(mockOnOnline).not.toHaveBeenCalled();
+
+        webSocketServerMock.send(
+          JSON.stringify({data: {heart_rate: 60}, measured_at: 1609459200000})
+        );
+
+        expect(mockOnOnline).toHaveBeenCalled();
+        expect(mockOnOnline).toHaveBeenCalledTimes(1);
+
+        const onlineEmittedBeforeHeartRate =
+          mockOnOnline.mock.invocationCallOrder[0] <
+          mockOnHeartRate.mock.invocationCallOrder[0];
+
+        expect(onlineEmittedBeforeHeartRate).toBe(true);
+      });
     });
 
     describe('"offline"', () => {
@@ -310,6 +338,40 @@ describe('Pusloid Socket', () => {
 
         expect(mockOnOffline).toHaveBeenCalled();
         expect(mockOnOffline).toHaveBeenCalledTimes(1);
+      });
+
+      it('should fire before close event', async () => {
+        openConnection();
+        const pulsocket = new PulsoidSocket(TEST_TOKEN);
+        const mockOnOffline = jest.fn();
+        const mockOnClose = jest.fn();
+
+        pulsocket.on('offline', mockOnOffline);
+        pulsocket.on('close', mockOnClose);
+
+        pulsocket.connect();
+
+        await waitForConnection();
+
+        expect(jest.getTimerCount()).toBe(0);
+
+        webSocketServerMock.send(
+          JSON.stringify({data: {heart_rate: 60}, measured_at: 1609459200000})
+        );
+
+        expect(mockOnOffline).not.toHaveBeenCalled();
+
+        pulsocket.disconnect();
+        await webSocketServerMock.closed;
+
+        expect(mockOnOffline).toHaveBeenCalled();
+        expect(mockOnOffline).toHaveBeenCalledTimes(1);
+
+        const offlineEmittedBeforeClose =
+          mockOnOffline.mock.invocationCallOrder[0] <
+          mockOnClose.mock.invocationCallOrder[0];
+
+        expect(offlineEmittedBeforeClose).toBe(true);
       });
 
       it('should not call handler when connection is closed and heart rate monitor is offline', async () => {
