@@ -28,8 +28,8 @@ pulsocket.on('open', (event: Event) => {
   document.body.append(disconnectBtn);
 });
 
-pulsocket.on('message', (data) => {
-  console.log('message', data);
+pulsocket.on('heart-rate', (data) => {
+  console.log('heart-rate', data);
   document.getElementById('heart-rate').innerHTML = String(data.heartRate);
 });
 

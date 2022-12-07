@@ -28,8 +28,8 @@ const pulsocket = new PulsoidSocket('YOUR_AUTH_TOKEN');
 pulsocket.on('open', ((event) => {
   console.log('Start listening to heart rate data');
 });
-pulsocket.on('message', (message) => {
-  console.log(`Current heart rate is ${message.heartRate}`);
+pulsocket.on('heart-rate', (data) => {
+  console.log(`Current heart rate is ${data.heartRate}`);
 });
 pulsocket.on('close', (event) => {
   console.log('Stop listening to heart rate data');
@@ -38,48 +38,46 @@ pulsocket.on('close', (event) => {
 pulsocket.connect();
 ```
 
+## Using CDN
+
+You can also use the client directly from CDN. The client is available on [unpkg](https://unpkg.com/@pulsoid/socket@1.1.0/dist/index.js) and [jsdelivr](https://cdn.jsdelivr.net/npm/@pulsoid/socket).
+
+Check the [codepen example](https://codepen.io/xmityaz/pen/PoaVdRK) on basic PulsoidSocket usage with CDN
+
+---
+
 ## API
 
 ### List of available Methods on PulsoidSocket instance
 
-| Method                                                       | Description                                                                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `constructor(token: string, options?: PulsoidSocketOptions)` | Creates a new instance of the client.                                                                        |
-| `connect()`                                                  | Connects to the websocket server                                                                             |
-| `disconnect()`                                               | Disconnects from the websocket server                                                                        |
-| `on(eventType: EventType, callback: Callback `               | Adds a listener for the specified event type.                                                                |
-| `off(eventType: EventType, callback?: Callback)`             | Removes a listener for the specified event type. Removes all handlers if callback parameter is not specified |
-| `isConnected()`                                              | Returns true if socket connection is alive                                                                   |
+| Method                                           | Description                                                                                                  |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `constructor(token: string)`                     | Creates a new instance of the client.                                                                        |
+| `connect()`                                      | Connects to the websocket server                                                                             |
+| `disconnect()`                                   | Disconnects from the websocket server                                                                        |
+| `on(eventType: EventType, callback: Callback `   | Adds a listener for the specified event type.                                                                |
+| `off(eventType: EventType, callback?: Callback)` | Removes a listener for the specified event type. Removes all handlers if callback parameter is not specified |
+| `isConnected()`                                  | Returns true if socket connection is alive                                                                   |
 
 ### List of available `EventType`'s for `on` method
 
-| Event Type  | Callback Type                         | Description                                                                                         |
-| ----------- | ------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `'open'`    | `(event: Event) => void`              | Called when the connection is established                                                           |
-| `'message'` | `(event: Message) => void`            | Called when a message is received                                                                   |
-| `'close'`   | `(event: CloseEvent) => void`         | Called when the connection is closed                                                                |
-| `'error'`   | `(error: PulsoidSocketError) => void` | Called when an error occurs                                                                         |
-| `'online'`  | `() => void`                          | Called when heart rate monitor device sends first message                                           |
-| `'offline'` | `() => void`                          | Called when there are no incomming messages from heart rate monitor device for more than 30 seconds |
+| Event Type     | Callback Type                           | Description                                                                                         |
+| -------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `'open'`       | `(event: Event) => void`                | Called when the connection is established                                                           |
+| `'heart-rate'` | `(heartRate: HeartRateMessage) => void` | Called when heart rate message is recieved                                                          |
+| `'close'`      | `(event: CloseEvent) => void`           | Called when the connection is closed                                                                |
+| `'error'`      | `(error: PulsoidSocketError) => void`   | Called when an error occurs                                                                         |
+| `'online'`     | `() => void`                            | Called when heart rate monitor device sends first message                                           |
+| `'offline'`    | `() => void`                            | Called when there are no incomming messages from heart rate monitor device for more than 30 seconds |
 
-`PulsoidSocketOptions` interface:
-
-```typescript
-interface PulsoidSocketOptions {
-  format?: 'plain' | 'json'; // default: 'json'
-}
-```
-
-`Message` format (when `format` is set to `json`):
+`HeartRateMessage` format:
 
 ```typescript
-interface Message {
+interface HeartRateMessage {
   measuredAt: number; // Unix timestamp
   heartRate: number; // Heart rate in BPM
 }
 ```
-
-`Message` format (when `format` is set to `plain`) is a string with heart rate value in BPM.
 
 `PulsoidSocketError` interface:
 

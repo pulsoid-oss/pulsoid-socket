@@ -127,13 +127,13 @@ describe('Pusloid Socket', () => {
       });
     });
 
-    describe('"message"', () => {
-      it('should call onmessage handler after receiving message from webSocket', async () => {
+    describe('"heart-rate"', () => {
+      it('should call handler after receiving message from webSocket', async () => {
         openConnection();
         const pulsocket = new PulsoidSocket(TEST_TOKEN);
         const mockOnMessage = jest.fn();
 
-        pulsocket.on('message', mockOnMessage);
+        pulsocket.on('heart-rate', mockOnMessage);
 
         pulsocket.connect();
         await waitForConnection();
@@ -166,7 +166,7 @@ describe('Pusloid Socket', () => {
         const pulsocket = new PulsoidSocket(TEST_TOKEN);
         const mockOnMessage = jest.fn();
 
-        pulsocket.on('message', mockOnMessage);
+        pulsocket.on('heart-rate', mockOnMessage);
 
         pulsocket.connect();
         await waitForConnection();
@@ -180,7 +180,7 @@ describe('Pusloid Socket', () => {
         expect(mockOnMessage).toHaveBeenCalled();
         expect(mockOnMessage).toHaveBeenCalledTimes(1);
 
-        pulsocket.off('message', mockOnMessage);
+        pulsocket.off('heart-rate', mockOnMessage);
 
         webSocketServerMock.send(
           JSON.stringify({data: {heart_rate: 76}, measured_at: 1609459201000})
@@ -351,8 +351,8 @@ describe('Pusloid Socket', () => {
       pulsocket.on('open', mockOnOpen3);
       pulsocket.on('close', mockOnClose1);
       pulsocket.on('close', mockOnClose2);
-      pulsocket.on('message', mockOnMessage1);
-      pulsocket.on('message', mockOnMessage2);
+      pulsocket.on('heart-rate', mockOnMessage1);
+      pulsocket.on('heart-rate', mockOnMessage2);
       pulsocket.on('error', mockOnError1);
       pulsocket.on('error', mockOnError2);
 
