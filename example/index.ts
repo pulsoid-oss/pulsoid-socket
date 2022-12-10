@@ -1,6 +1,6 @@
 import PulsoidSocket from '../src';
 
-const PULSOID_TOKEN = 'YOUR_PULSOID_TOKEN';
+const PULSOID_TOKEN = '745e662b-f2b5-4bbc-b306-e67aed853254';
 
 const pulsocket = new PulsoidSocket(PULSOID_TOKEN);
 
@@ -58,6 +58,10 @@ pulsocket.on('online', () => {
 });
 pulsocket.on('offline', () => {
   console.log('offline');
+});
+
+pulsocket.on('reconnect', (e) => {
+  console.log('reconnecting', e);
 });
 
 pulsocket.connect();
