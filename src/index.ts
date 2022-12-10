@@ -5,12 +5,22 @@ export type PulsoidMessageJsonResponse = {
   measuredAt: number;
 };
 
+export type PulsoidSocketOptions = {
+  reconnect?: {
+    enable?: boolean;
+    reconnectMinInterval?: number;
+    reconnectMaxInterval?: number;
+    reconnectAttempts?: number;
+  };
+};
+
 export type PulsoidSocketEventType =
   | 'open'
   | 'heart-rate'
   | 'error'
   | 'close'
   | 'online'
+  | 'reconnect'
   | 'offline';
 
 export type PulsoidSocketEventHandler =
@@ -18,6 +28,7 @@ export type PulsoidSocketEventHandler =
   | ((data: {heartRate: number; measuredAt: number}) => void)
   | typeof WebSocket.prototype.onerror
   | typeof WebSocket.prototype.onclose
+  | ((e: {attempt: number}) => void)
   | (() => void);
 
 const normalizeMessageBeData = (data: string) => {
@@ -33,8 +44,18 @@ const normalizeMessageBeData = (data: string) => {
 };
 
 class PulsoidSocket {
+  private static reconnectDefaultOptions = {
+    enable: true,
+    reconnectMinInterval: 2000,
+    reconnectMaxInterval: 10000,
+    reconnectAttempts: 3,
+  };
+
   private websocket: WebSocket;
   private online = false;
+  private shouldReconnect = true;
+  private reconnectTryCount = 0;
+  private reconnectTimeout: NodeJS.Timeout;
 
   private get url(): string {
     return `wss://dev.pulsoid.net/api/v1/data/real_time?access_token=${this.token}`;
@@ -49,6 +70,7 @@ class PulsoidSocket {
     close: [],
     online: [],
     offline: [],
+    reconnect: [],
   };
 
   private debounceOfflineEvent = debounce(
@@ -86,6 +108,15 @@ class PulsoidSocket {
     );
 
     this.clearEventHandlers();
+
+    if (
+      this.shouldReconnect &&
+      this.reconnectTryCount < this.options.reconnect.reconnectAttempts
+    ) {
+      this.reconnect();
+    }
+
+    this.shouldReconnect = this.options?.reconnect?.enable;
   };
   private addOnCloseEventHandler = () => {
     this.websocket.addEventListener('close', this.onCloseEventHandler);
@@ -101,6 +132,12 @@ class PulsoidSocket {
     }
 
     this.debounceOfflineEvent();
+  };
+
+  onReconnectEventHandler = () => {
+    this.eventTypeToEventHandlersMap.reconnect?.forEach((callback) =>
+      callback?.call(this.websocket, {attempt: this.reconnectTryCount})
+    );
   };
 
   private onHeartRateEventHandler = (event: MessageEvent) => {
@@ -142,7 +179,56 @@ class PulsoidSocket {
     this.websocket.removeEventListener('error', this.onErrorEventHandler);
   }
 
-  constructor(private token: string) {}
+  private resetReconnectData() {
+    this.reconnectTryCount = 0;
+    clearTimeout(this.reconnectTimeout);
+  }
+
+  private reconnect() {
+    if (this.reconnectTimeout) {
+      return;
+    }
+
+    this.reconnectTimeout = setTimeout(() => {
+      try {
+        this.reconnectTryCount++;
+
+        this.onReconnectEventHandler();
+        this.openSocketConnection();
+      } catch (error) {
+        if (this.reconnectTryCount < this.options.reconnect.reconnectAttempts) {
+          this.reconnect();
+        }
+      }
+
+      this.reconnectTimeout = null;
+    }, this.getReconnectInterval());
+  }
+
+  private getReconnectInterval() {
+    const {reconnectMinInterval, reconnectMaxInterval} = this.options.reconnect;
+
+    const interval = reconnectMinInterval * Math.pow(2, this.reconnectTryCount);
+
+    return Math.min(interval, reconnectMaxInterval);
+  }
+
+  private openSocketConnection() {
+    this.websocket = new WebSocket(this.url);
+    this.assignEventHandlers();
+  }
+
+  constructor(
+    private token: string,
+    private options: PulsoidSocketOptions = {}
+  ) {
+    options.reconnect = {
+      ...PulsoidSocket.reconnectDefaultOptions,
+      ...(options.reconnect || {}),
+    };
+
+    this.shouldReconnect = options.reconnect.enable;
+  }
 
   on(
     eventType: 'heart-rate',
@@ -153,6 +239,7 @@ class PulsoidSocket {
   on(eventType: 'error', callback: typeof WebSocket.prototype.onerror): void;
   on(eventType: 'online', callback: () => void): void;
   on(eventType: 'offline', callback: () => void): void;
+  on(eventType: 'reconnect', callback: (e: {attempt: number}) => void): void;
   on(eventType: PulsoidSocketEventType, callback: PulsoidSocketEventHandler) {
     this.eventTypeToEventHandlersMap[eventType].push(callback);
   }
@@ -166,6 +253,7 @@ class PulsoidSocket {
   off(eventType: 'error', callback?: typeof WebSocket.prototype.onerror): void;
   off(eventType: 'online', callback?: () => void): void;
   off(eventType: 'offline', callback?: () => void): void;
+  off(eventType: 'reconnect', callback?: (e: {attempt: number}) => void): void;
   off(eventType: PulsoidSocketEventType, callback?: PulsoidSocketEventHandler) {
     if (callback) {
       this.eventTypeToEventHandlersMap[eventType] =
@@ -178,12 +266,15 @@ class PulsoidSocket {
   }
 
   connect() {
-    this.websocket = new WebSocket(this.url);
+    this.resetReconnectData();
 
-    this.assignEventHandlers();
+    this.openSocketConnection();
   }
 
   disconnect() {
+    this.resetReconnectData();
+    this.shouldReconnect = false;
+
     this.websocket?.close();
   }
 
