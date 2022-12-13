@@ -1,6 +1,6 @@
 {
   "name": "@pulsoid/socket",
-  "version": "1.1.4",
+  "version": "1.1.6",
   "description": "Web Socket client for client intergation with Pulsoid heart rate API",
   "main": "dist/index.js",
   "types": "dist/src/index.d",

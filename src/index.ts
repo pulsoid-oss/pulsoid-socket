@@ -48,7 +48,7 @@ class PulsoidSocket {
     enable: true,
     reconnectMinInterval: 2000,
     reconnectMaxInterval: 10000,
-    reconnectAttempts: 3,
+    reconnectAttempts: 10000,
   };
 
   private websocket: WebSocket;
