@@ -1,6 +1,6 @@
 import PulsoidSocket from '../src';
 
-const PULSOID_TOKEN = '745e662b-f2b5-4bbc-b306-e67aed853254';
+const PULSOID_TOKEN = 'PAST_YOUR_TOKEN_HERE';
 
 const pulsocket = new PulsoidSocket(PULSOID_TOKEN);
 
