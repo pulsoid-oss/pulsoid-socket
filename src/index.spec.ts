@@ -503,7 +503,7 @@ describe('Pusloid Socket', () => {
       expect(pulsocket.isConnected()).toBe(true);
     });
 
-    it('should reconnect try to reconnect 3 times by default', async () => {
+    it('should reconnect try to reconnect 10000 times by default', async () => {
       openConnection();
       pulsocket = new PulsoidSocket(TEST_TOKEN);
       const mockOnReconnect = jest.fn();
@@ -522,7 +522,7 @@ describe('Pusloid Socket', () => {
 
       jest.runAllTimers();
 
-      expect(mockOnReconnect).toHaveBeenCalledTimes(3);
+      expect(mockOnReconnect).toHaveBeenCalledTimes(10000);
 
       expect(pulsocket.isConnected()).toBe(false);
     });

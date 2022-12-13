@@ -87,7 +87,7 @@ interface PulsoidSocketOptions {
     // Max value for reconnect interval. 10000 by default
     reconnectMaxInterval?: number;
 
-    // Number of attempts before stopping the reconect. 3 by default
+    // Number of attempts before stopping the reconect. 10 000 by default trying to reconnect really hard
     reconnectAttempts?: number;
   };
 }
