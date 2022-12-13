@@ -92,22 +92,30 @@ class PulsoidSocket {
     this.eventTypeToEventHandlersMap.open?.forEach((callback) =>
       callback?.call(this.websocket, event)
     );
+
+    if (this.reconnectTryCount > 0) {
+      this.resetReconnectData();
+    }
   };
   private addOnOpenEventHandler = () => {
     this.websocket.addEventListener('open', this.onOpenEventHandler);
   };
 
   private onCloseEventHandler = (event: CloseEvent) => {
-    if (this.online) {
-      this.onOfflineEventHandler();
-      this.debounceOfflineEvent.cancel();
+    const isReconnectInProgress = this.reconnectTryCount > 0;
+
+    if (!isReconnectInProgress) {
+      if (this.online) {
+        this.onOfflineEventHandler();
+        this.debounceOfflineEvent.cancel();
+      }
+
+      this.eventTypeToEventHandlersMap.close?.forEach((callback) =>
+        callback?.call(this.websocket, event)
+      );
+
+      this.clearEventHandlers();
     }
-
-    this.eventTypeToEventHandlersMap.close?.forEach((callback) =>
-      callback?.call(this.websocket, event)
-    );
-
-    this.clearEventHandlers();
 
     if (
       this.shouldReconnect &&

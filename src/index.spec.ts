@@ -592,6 +592,82 @@ describe('Pusloid Socket', () => {
       expect(mockOnReconnect).toHaveBeenCalledTimes(3);
     });
 
+    it('should reconnect reconnect second time', async () => {
+      openConnection();
+      pulsocket = new PulsoidSocket(TEST_TOKEN, {
+        reconnect: {
+          enable: true,
+          reconnectMinInterval: 1000,
+          reconnectMaxInterval: 10000,
+        },
+      });
+
+      const mockOnReconnect = jest.fn();
+      pulsocket.on('reconnect', mockOnReconnect);
+
+      pulsocket.connect();
+
+      jest.runAllTimers();
+      await waitForConnection();
+
+      webSocketServerMock.error();
+      await webSocketServerMock.closed;
+
+      expect(mockOnReconnect).toHaveBeenCalledTimes(0);
+
+      jest.advanceTimersByTime(999);
+      expect(mockOnReconnect).toHaveBeenCalledTimes(0);
+      jest.advanceTimersByTime(1);
+      expect(mockOnReconnect).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(1999);
+      expect(mockOnReconnect).toHaveBeenCalledTimes(1);
+      jest.advanceTimersByTime(10);
+      expect(mockOnReconnect).toHaveBeenCalledTimes(2);
+      jest.advanceTimersByTime(3990);
+      expect(mockOnReconnect).toHaveBeenCalledTimes(2);
+      jest.advanceTimersByTime(100);
+      expect(mockOnReconnect).toHaveBeenCalledTimes(3);
+    });
+
+    it('should not fire close events while reconnecting', async () => {
+      openConnection();
+      pulsocket = new PulsoidSocket(TEST_TOKEN, {
+        reconnect: {
+          enable: true,
+          reconnectMinInterval: 1000,
+          reconnectMaxInterval: 10000,
+        },
+      });
+
+      const mockOnReconnect = jest.fn();
+      const mockOnClose = jest.fn();
+      pulsocket.on('reconnect', mockOnReconnect);
+      pulsocket.on('close', mockOnClose);
+
+      pulsocket.connect();
+
+      jest.runAllTimers();
+      await waitForConnection();
+
+      webSocketServerMock.error();
+      await webSocketServerMock.closed;
+
+      expect(mockOnReconnect).toHaveBeenCalledTimes(0);
+      jest.advanceTimersByTime(3100);
+
+      expect(mockOnReconnect).toHaveBeenCalledTimes(2);
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
+
+      jest.advanceTimersByTime(4100);
+
+      expect(mockOnReconnect).toHaveBeenCalledTimes(3);
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
+
+      webSocketServerMock.error();
+      await webSocketServerMock.closed;
+    });
+
     it('should not reconnect if reconnect is disabled', async () => {
       openConnection();
       pulsocket = new PulsoidSocket(TEST_TOKEN, {
