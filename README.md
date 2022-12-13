@@ -25,7 +25,7 @@ import PulsoidSocket from 'pulsoid-socket';
 
 const pulsocket = new PulsoidSocket('YOUR_AUTH_TOKEN');
 
-pulsocket.on('open', ((event) => {
+pulsocket.on('open', (event) => {
   console.log('Start listening to heart rate data');
 });
 pulsocket.on('heart-rate', (data) => {
