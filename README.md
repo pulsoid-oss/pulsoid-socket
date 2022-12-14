@@ -7,13 +7,13 @@ Zero dependency client for consuming [Heart Rate Data](https://github.com/pulsoi
 To install the package with npm, run:
 
 ```bash
-npm install pulsoid-socket
+npm install @pulsoid/socket
 ```
 
 or with yarn:
 
 ```bash
-yarn add pulsoid-socket
+yarn add @pulsoid/socket
 ```
 
 ## Basic usage
@@ -87,7 +87,7 @@ interface PulsoidSocketOptions {
     // Max value for reconnect interval. 10000 by default
     reconnectMaxInterval?: number;
 
-    // Number of attempts before stopping the reconect. 10 000 by default trying to reconnect really hard
+    // Number of attempts before stopping the reconect. 10 000 by default. trying to reconnect really hard
     reconnectAttempts?: number;
   };
 }
