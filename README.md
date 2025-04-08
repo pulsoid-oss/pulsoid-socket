@@ -61,7 +61,7 @@ pulsocket.on('open', () => {
 pulsocket.on('heart-rate', (data) => {
   console.log(data);
 
-  document.getElementById('hr').innerHTML = `Your heart rate is: ${data.heartRate}`;
+  console.log(`Current heart rate is ${data.heartRate}`);
 });
 
 pulsocket.connect();
