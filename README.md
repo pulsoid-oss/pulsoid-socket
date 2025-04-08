@@ -45,11 +45,11 @@ You can also use the client directly from CDN. The client is available on [unpkg
 Check the [codepen example](https://codepen.io/xmityaz/pen/PoaVdRK) on basic PulsoidSocket usage with CDN
 
 To add Pulsoid socket put this in head tag of your html
-```
+```html
 <script crossorigin src="https://unpkg.com/@pulsoid/socket@1.1.1/dist/index.js"></script>
 ```
 Then, in your js code you can init and use pulsoid socket like this 
-```
+```javascript
 const pulsocket = new PulsoidSocket('REPLACE WITH YOUR TOKEN');
 
 console.log(pulsocket.isConnected());
