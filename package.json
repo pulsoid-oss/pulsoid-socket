@@ -2,8 +2,16 @@
   "name": "@pulsoid/socket",
   "version": "1.2.0",
   "description": "Web Socket client for client intergation with Pulsoid heart rate API",
-  "main": "dist/index.js",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.es.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "repository": "git@github.com:pulsoid-oss/pulsoid-socket.git",
   "author": "xmityaz",
   "license": "MIT",
@@ -14,7 +22,10 @@
     "test": "jest",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
-    "format": "prettier --write src/**/*.ts"
+    "format": "prettier --write src/**/*.ts",
+    "release": "npm run test && npm run build && npm version patch && npm publish",
+    "release:minor": "npm run test && npm run build && npm version minor && npm publish",
+    "release:major": "npm run test && npm run build && npm version major && npm publish"
   },
   "devDependencies": {
     "@jest/globals": "^29.3.1",
