@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import { resolve } from 'path'
+import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
   build: {
@@ -7,21 +7,24 @@ export default defineConfig({
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'PulsoidSocket',
       fileName: (format) => `index.${format}.js`,
-      formats: ['es', 'cjs', 'umd']
+      formats: ['es', 'cjs', 'umd'],
     },
     outDir: 'dist',
     sourcemap: true,
     rollupOptions: {
-      external: [],
+      external: ['isomorphic-ws', 'ws'],
       output: {
-        globals: {}
-      }
-    }
+        globals: {
+          'isomorphic-ws': 'WebSocket',
+          ws: 'WebSocket',
+        },
+      },
+    },
   },
   resolve: {
-    extensions: ['.ts', '.js']
+    extensions: ['.ts', '.js'],
   },
   server: {
-    open: true
-  }
-})
+    open: true,
+  },
+});
