@@ -1,24 +1,24 @@
-import PulsoidSocket from "../src";
+import PulsoidSocket from '../src';
 
-const PULSOID_TOKEN = "PAST_YOUR_TOKEN_HERE";
+const PULSOID_TOKEN = '938f5a51-d665-48b4-999b-8b7853fa585e';
 const pulsocket = new PulsoidSocket(PULSOID_TOKEN);
 
-pulsocket.on("open", (event: Event) => {
-  console.log("Connected", event);
+pulsocket.on('open', (event: Event) => {
+  console.log('Connected', event);
 
-  const reconnectBtn = document.getElementById("reconnect");
+  const reconnectBtn = document.getElementById('reconnect');
   if (reconnectBtn) {
     document.body.removeChild(reconnectBtn);
   }
 
-  const hbEl = document.createElement("div");
-  hbEl.id = "heart-rate";
-  hbEl.style.fontSize = "100px";
-  hbEl.innerHTML = "--";
+  const hbEl = document.createElement('div');
+  hbEl.id = 'heart-rate';
+  hbEl.style.fontSize = '100px';
+  hbEl.innerHTML = '--';
 
-  const disconnectBtn = document.createElement("button");
-  disconnectBtn.id = "disconnect";
-  disconnectBtn.innerText = "Disconnect";
+  const disconnectBtn = document.createElement('button');
+  disconnectBtn.id = 'disconnect';
+  disconnectBtn.innerText = 'Disconnect';
   disconnectBtn.onclick = () => {
     pulsocket.disconnect();
   };
@@ -27,24 +27,24 @@ pulsocket.on("open", (event: Event) => {
   document.body.append(disconnectBtn);
 });
 
-pulsocket.on("heart-rate", (data) => {
-  console.log("heart-rate", data);
-  document.getElementById("heart-rate").innerHTML = String(data.heartRate);
+pulsocket.on('heart-rate', (data) => {
+  console.log('heart-rate', data);
+  document.getElementById('heart-rate').innerHTML = String(data.heartRate);
 });
 
-pulsocket.on("error", (data) => {
-  console.warn("error: ", data);
+pulsocket.on('error', (data) => {
+  console.warn('error: ', data);
 });
 
-pulsocket.on("close", (data) => {
-  console.log("close", data);
+pulsocket.on('close', (data) => {
+  console.log('close', data);
 
-  document.body.removeChild(document.getElementById("heart-rate"));
-  document.body.removeChild(document.getElementById("disconnect"));
+  document.body.removeChild(document.getElementById('heart-rate'));
+  document.body.removeChild(document.getElementById('disconnect'));
 
-  const reconnectBtn = document.createElement("button");
-  reconnectBtn.id = "reconnect";
-  reconnectBtn.innerText = "Reconnect";
+  const reconnectBtn = document.createElement('button');
+  reconnectBtn.id = 'reconnect';
+  reconnectBtn.innerText = 'Reconnect';
   reconnectBtn.onclick = () => {
     pulsocket.connect();
   };
@@ -52,15 +52,15 @@ pulsocket.on("close", (data) => {
   document.body.appendChild(reconnectBtn);
 });
 
-pulsocket.on("online", () => {
-  console.log("online");
+pulsocket.on('online', () => {
+  console.log('online');
 });
-pulsocket.on("offline", () => {
-  console.log("offline");
+pulsocket.on('offline', () => {
+  console.log('offline');
 });
 
-pulsocket.on("reconnect", (e) => {
-  console.log("reconnecting", e);
+pulsocket.on('reconnect', (e) => {
+  console.log('reconnecting', e);
 });
 
 pulsocket.connect();
