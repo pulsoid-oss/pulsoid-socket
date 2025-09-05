@@ -1,4 +1,5 @@
-import {debounce} from './utils/debounce';
+import { debounce } from './utils/debounce';
+import WebSocket from 'isomorphic-ws';
 
 export type PulsoidMessageJsonResponse = {
   heartRate: number;
@@ -25,10 +26,10 @@ export type PulsoidSocketEventType =
 
 export type PulsoidSocketEventHandler =
   | typeof WebSocket.prototype.onopen
-  | ((data: {heartRate: number; measuredAt: number}) => void)
+  | ((data: { heartRate: number; measuredAt: number }) => void)
   | typeof WebSocket.prototype.onerror
   | typeof WebSocket.prototype.onclose
-  | ((e: {attempt: number}) => void)
+  | ((e: { attempt: number }) => void)
   | (() => void);
 
 const normalizeMessageBeData = (data: string) => {
@@ -144,7 +145,7 @@ class PulsoidSocket {
 
   onReconnectEventHandler = () => {
     this.eventTypeToEventHandlersMap.reconnect?.forEach((callback) =>
-      callback?.call(this.websocket, {attempt: this.reconnectTryCount})
+      callback?.call(this.websocket, { attempt: this.reconnectTryCount })
     );
   };
 
@@ -214,7 +215,8 @@ class PulsoidSocket {
   }
 
   private getReconnectInterval() {
-    const {reconnectMinInterval, reconnectMaxInterval} = this.options.reconnect;
+    const { reconnectMinInterval, reconnectMaxInterval } =
+      this.options.reconnect;
 
     const interval = reconnectMinInterval * Math.pow(2, this.reconnectTryCount);
 
@@ -247,7 +249,7 @@ class PulsoidSocket {
   on(eventType: 'error', callback: typeof WebSocket.prototype.onerror): void;
   on(eventType: 'online', callback: () => void): void;
   on(eventType: 'offline', callback: () => void): void;
-  on(eventType: 'reconnect', callback: (e: {attempt: number}) => void): void;
+  on(eventType: 'reconnect', callback: (e: { attempt: number }) => void): void;
   on(eventType: PulsoidSocketEventType, callback: PulsoidSocketEventHandler) {
     this.eventTypeToEventHandlersMap[eventType].push(callback);
   }
@@ -261,7 +263,10 @@ class PulsoidSocket {
   off(eventType: 'error', callback?: typeof WebSocket.prototype.onerror): void;
   off(eventType: 'online', callback?: () => void): void;
   off(eventType: 'offline', callback?: () => void): void;
-  off(eventType: 'reconnect', callback?: (e: {attempt: number}) => void): void;
+  off(
+    eventType: 'reconnect',
+    callback?: (e: { attempt: number }) => void
+  ): void;
   off(eventType: PulsoidSocketEventType, callback?: PulsoidSocketEventHandler) {
     if (callback) {
       this.eventTypeToEventHandlersMap[eventType] =
