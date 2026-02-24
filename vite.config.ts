@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 
 export default defineConfig({
@@ -11,20 +11,15 @@ export default defineConfig({
     },
     outDir: 'dist',
     sourcemap: true,
-    rollupOptions: {
-      external: ['isomorphic-ws', 'ws'],
-      output: {
-        globals: {
-          'isomorphic-ws': 'WebSocket',
-          ws: 'WebSocket',
-        },
-      },
-    },
   },
   resolve: {
     extensions: ['.ts', '.js'],
   },
   server: {
     open: true,
+  },
+  test: {
+    globals: true,
+    setupFiles: ['./vitest-setup.ts'],
   },
 });

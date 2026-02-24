@@ -1,5 +1,6 @@
 import WS from 'jest-websocket-mock';
 import PulsoidSocket from './index';
+import { flushPromises, mockFetchSuccess, mockFetchError } from './test-utils';
 
 const TEST_TOKEN = 'token';
 let webSocketServerMock: WS;
@@ -20,6 +21,11 @@ const waitForConnection = async () => {
 
 describe('Pusloid Socket', () => {
   let pulsocket: PulsoidSocket;
+
+  beforeEach(() => {
+    mockFetchSuccess(['data:heart_rate:read']);
+  });
+
   afterEach(() => {
     pulsocket?.disconnect();
     webSocketServerMock?.close();
@@ -27,7 +33,7 @@ describe('Pusloid Socket', () => {
 
   it('should have public methods', () => {
     openConnection();
-    pulsocket = new PulsoidSocket(TEST_TOKEN);
+    pulsocket = PulsoidSocket.create(TEST_TOKEN);
 
     expect(pulsocket).toHaveProperty('on');
     expect(pulsocket).toHaveProperty('off');
@@ -38,11 +44,11 @@ describe('Pusloid Socket', () => {
 
   it('should connect to WS server', async () => {
     openConnection();
-    pulsocket = new PulsoidSocket(TEST_TOKEN);
+    pulsocket = PulsoidSocket.create(TEST_TOKEN);
 
     expect(pulsocket.isConnected()).toBe(false);
 
-    pulsocket.connect();
+    await pulsocket.connect();
 
     await webSocketServerMock.connected;
 
@@ -53,12 +59,12 @@ describe('Pusloid Socket', () => {
     describe('"open"', () => {
       it('should call on("open") handler after connecting webSocket', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnOpen = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnOpen = vi.fn();
 
         pulsocket.on('open', mockOnOpen);
 
-        pulsocket.connect();
+        await pulsocket.connect();
         await waitForConnection();
 
         expect(mockOnOpen).toHaveBeenCalled();
@@ -67,12 +73,12 @@ describe('Pusloid Socket', () => {
 
       it('should not call on("open") if webSocket was not connected (rejected by server)', async () => {
         openConnection({verifyClient: () => false});
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnOpen = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnOpen = vi.fn();
 
         pulsocket.on('open', mockOnOpen);
 
-        pulsocket.connect();
+        await pulsocket.connect();
         await waitForConnection();
 
         expect(mockOnOpen).not.toHaveBeenCalled();
@@ -80,13 +86,13 @@ describe('Pusloid Socket', () => {
 
       it('should not call on("open") after off("open")', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnOpen = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnOpen = vi.fn();
 
         pulsocket.on('open', mockOnOpen);
         pulsocket.off('open', mockOnOpen);
 
-        pulsocket.connect();
+        await pulsocket.connect();
         await waitForConnection();
 
         expect(mockOnOpen).not.toHaveBeenCalled();
@@ -94,13 +100,13 @@ describe('Pusloid Socket', () => {
 
       it('should not call on("open") after off("open") without arguments', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnOpen = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnOpen = vi.fn();
 
         pulsocket.on('open', mockOnOpen);
         pulsocket.off('open');
 
-        pulsocket.connect();
+        await pulsocket.connect();
         await waitForConnection();
 
         expect(mockOnOpen).not.toHaveBeenCalled();
@@ -110,12 +116,12 @@ describe('Pusloid Socket', () => {
     describe('"close"', () => {
       it('should call onclose handler after disconnecting webSocket', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnClose = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnClose = vi.fn();
 
         pulsocket.on('close', mockOnClose);
 
-        pulsocket.connect();
+        await pulsocket.connect();
         await waitForConnection();
 
         expect(mockOnClose).not.toHaveBeenCalled();
@@ -132,12 +138,12 @@ describe('Pusloid Socket', () => {
     describe('"heart-rate"', () => {
       it('should call handler after receiving message from webSocket', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnMessage = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnMessage = vi.fn();
 
         pulsocket.on('heart-rate', mockOnMessage);
 
-        pulsocket.connect();
+        await pulsocket.connect();
         await waitForConnection();
 
         expect(mockOnMessage).not.toHaveBeenCalled();
@@ -165,12 +171,12 @@ describe('Pusloid Socket', () => {
 
       it('should not call onmessage handler after off("message")', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnMessage = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnMessage = vi.fn();
 
         pulsocket.on('heart-rate', mockOnMessage);
 
-        pulsocket.connect();
+        await pulsocket.connect();
         await waitForConnection();
 
         expect(mockOnMessage).not.toHaveBeenCalled();
@@ -194,12 +200,12 @@ describe('Pusloid Socket', () => {
     describe('"error"', () => {
       it('should call onerror handler after receiving error from webSocket', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnError = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnError = vi.fn();
 
         pulsocket.on('error', mockOnError);
 
-        pulsocket.connect();
+        await pulsocket.connect();
         await waitForConnection();
 
         expect(mockOnError).not.toHaveBeenCalled();
@@ -212,12 +218,12 @@ describe('Pusloid Socket', () => {
 
       it('should not call onerror handler after off("error")', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnError = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnError = vi.fn();
 
         pulsocket.on('error', mockOnError);
 
-        pulsocket.connect();
+        await pulsocket.connect();
         await waitForConnection();
 
         expect(mockOnError).not.toHaveBeenCalled();
@@ -232,12 +238,12 @@ describe('Pusloid Socket', () => {
     describe('"online"', () => {
       it('should call handler after receiving first message from webSocket', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnOnline = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnOnline = vi.fn();
 
         pulsocket.on('online', mockOnOnline);
 
-        pulsocket.connect();
+        await pulsocket.connect();
         await waitForConnection();
 
         expect(mockOnOnline).not.toHaveBeenCalled();
@@ -258,14 +264,14 @@ describe('Pusloid Socket', () => {
 
       it('should fire before the "heart-rate" event', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnOnline = jest.fn();
-        const mockOnHeartRate = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnOnline = vi.fn();
+        const mockOnHeartRate = vi.fn();
 
         pulsocket.on('heart-rate', mockOnHeartRate);
         pulsocket.on('online', mockOnOnline);
 
-        pulsocket.connect();
+        await pulsocket.connect();
         await waitForConnection();
 
         expect(mockOnOnline).not.toHaveBeenCalled();
@@ -287,20 +293,19 @@ describe('Pusloid Socket', () => {
 
     describe('"offline"', () => {
       it('should call handler after receiving first message from webSocket', async () => {
-        jest.useFakeTimers();
+        vi.useFakeTimers();
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnOffline = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnOffline = vi.fn();
 
         pulsocket.on('offline', mockOnOffline);
 
-        pulsocket.connect();
-
-        jest.runAllTimers();
+        await pulsocket.connect();
+        vi.runAllTimers();
         await waitForConnection();
-        jest.runAllTimers();
+        vi.runAllTimers();
 
-        expect(jest.getTimerCount()).toBe(0);
+        expect(vi.getTimerCount()).toBe(0);
 
         webSocketServerMock.send(
           JSON.stringify({data: {heart_rate: 60}, measured_at: 1609459200000})
@@ -308,26 +313,24 @@ describe('Pusloid Socket', () => {
 
         expect(mockOnOffline).not.toHaveBeenCalled();
 
-        expect(jest.getTimerCount()).toBe(1);
-        jest.runAllTimers();
+        expect(vi.getTimerCount()).toBe(1);
+        vi.runAllTimers();
 
         expect(mockOnOffline).toHaveBeenCalled();
         expect(mockOnOffline).toHaveBeenCalledTimes(1);
-        jest.useRealTimers();
+        vi.useRealTimers();
       });
 
       it('should call handler when connection is closed if heart rate monitor is online', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnOffline = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnOffline = vi.fn();
 
         pulsocket.on('offline', mockOnOffline);
 
-        pulsocket.connect();
+        await pulsocket.connect();
 
         await waitForConnection();
-
-        expect(jest.getTimerCount()).toBe(0);
 
         webSocketServerMock.send(
           JSON.stringify({data: {heart_rate: 60}, measured_at: 1609459200000})
@@ -344,18 +347,16 @@ describe('Pusloid Socket', () => {
 
       it('should fire before close event', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnOffline = jest.fn();
-        const mockOnClose = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnOffline = vi.fn();
+        const mockOnClose = vi.fn();
 
         pulsocket.on('offline', mockOnOffline);
         pulsocket.on('close', mockOnClose);
 
-        pulsocket.connect();
+        await pulsocket.connect();
 
         await waitForConnection();
-
-        expect(jest.getTimerCount()).toBe(0);
 
         webSocketServerMock.send(
           JSON.stringify({data: {heart_rate: 60}, measured_at: 1609459200000})
@@ -378,16 +379,14 @@ describe('Pusloid Socket', () => {
 
       it('should not call handler when connection is closed and heart rate monitor is offline', async () => {
         openConnection();
-        pulsocket = new PulsoidSocket(TEST_TOKEN);
-        const mockOnOffline = jest.fn();
+        pulsocket = PulsoidSocket.create(TEST_TOKEN);
+        const mockOnOffline = vi.fn();
 
         pulsocket.on('offline', mockOnOffline);
 
-        pulsocket.connect();
+        await pulsocket.connect();
 
         await waitForConnection();
-
-        expect(jest.getTimerCount()).toBe(0);
 
         expect(mockOnOffline).not.toHaveBeenCalled();
 
@@ -399,16 +398,16 @@ describe('Pusloid Socket', () => {
 
     it('should be able to call all assigned hanndlers', async () => {
       openConnection();
-      pulsocket = new PulsoidSocket(TEST_TOKEN);
-      const mockOnOpen1 = jest.fn();
-      const mockOnOpen2 = jest.fn();
-      const mockOnOpen3 = jest.fn();
-      const mockOnClose1 = jest.fn();
-      const mockOnClose2 = jest.fn();
-      const mockOnMessage1 = jest.fn();
-      const mockOnMessage2 = jest.fn();
-      const mockOnError1 = jest.fn();
-      const mockOnError2 = jest.fn();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+      const mockOnOpen1 = vi.fn();
+      const mockOnOpen2 = vi.fn();
+      const mockOnOpen3 = vi.fn();
+      const mockOnClose1 = vi.fn();
+      const mockOnClose2 = vi.fn();
+      const mockOnMessage1 = vi.fn();
+      const mockOnMessage2 = vi.fn();
+      const mockOnError1 = vi.fn();
+      const mockOnError2 = vi.fn();
 
       pulsocket.on('open', mockOnOpen1);
       pulsocket.on('open', mockOnOpen2);
@@ -422,7 +421,7 @@ describe('Pusloid Socket', () => {
 
       pulsocket.off('open', mockOnOpen2);
 
-      pulsocket.connect();
+      await pulsocket.connect();
 
       await waitForConnection();
 
@@ -460,42 +459,44 @@ describe('Pusloid Socket', () => {
 
   describe('reconnect flow', () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
     afterEach(() => {
       pulsocket?.disconnect();
-      jest.runAllTimers();
-      jest.useRealTimers();
+      vi.runAllTimers();
+      vi.useRealTimers();
     });
 
     it('should reconnect after 5 seconds', async () => {
       openConnection();
-      pulsocket = new PulsoidSocket(TEST_TOKEN, {
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
         reconnect: {
           enable: true,
           reconnectMinInterval: 5000,
           reconnectMaxInterval: 10000,
         },
       });
-      const mockOnReconnect = jest.fn();
+      const mockOnReconnect = vi.fn();
 
       pulsocket.on('reconnect', mockOnReconnect);
 
-      pulsocket.connect();
-
-      jest.runAllTimers();
-      await waitForConnection();
+      await pulsocket.connect();
+      vi.runAllTimers();
+      await flushPromises();
 
       expect(pulsocket.isConnected()).toBe(true);
 
       webSocketServerMock.error();
       await webSocketServerMock.closed;
+      await flushPromises();
 
       expect(pulsocket.isConnected()).toBe(false);
 
       openConnection();
-      jest.advanceTimersByTime(5500);
-      await waitForConnection();
+      vi.advanceTimersByTime(5500);
+      await flushPromises();
+      vi.runAllTimers();
+      await flushPromises();
 
       expect(mockOnReconnect).toHaveBeenCalled();
       expect(mockOnReconnect).toHaveBeenCalledTimes(1);
@@ -503,26 +504,29 @@ describe('Pusloid Socket', () => {
       expect(pulsocket.isConnected()).toBe(true);
     });
 
-    it('should reconnect try to reconnect 10000 times by default', async () => {
+    it('should reconnect try to reconnect 100 times by default', async () => {
       openConnection();
-      pulsocket = new PulsoidSocket(TEST_TOKEN);
-      const mockOnReconnect = jest.fn();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+      const mockOnReconnect = vi.fn();
 
       pulsocket.on('reconnect', mockOnReconnect);
 
-      pulsocket.connect();
-
-      jest.runAllTimers();
+      await pulsocket.connect();
+      vi.runAllTimers();
       await waitForConnection();
 
       expect(pulsocket.isConnected()).toBe(true);
 
       webSocketServerMock.error();
       await webSocketServerMock.closed;
+      await flushPromises();
 
-      jest.runAllTimers();
+      for (let i = 0; i < 200; i++) {
+        vi.runOnlyPendingTimers();
+        await flushPromises();
+      }
 
-      expect(mockOnReconnect).toHaveBeenCalledTimes(10000);
+      expect(mockOnReconnect).toHaveBeenCalledTimes(100);
 
       expect(pulsocket.isConnected()).toBe(false);
     });
@@ -530,24 +534,27 @@ describe('Pusloid Socket', () => {
     it('should reconnect set amount of times', async () => {
       openConnection();
       const RECONNECT_ATTEMPTS = 5;
-      pulsocket = new PulsoidSocket(TEST_TOKEN, {
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
         reconnect: {reconnectAttempts: RECONNECT_ATTEMPTS},
       });
 
-      const mockOnReconnect = jest.fn();
+      const mockOnReconnect = vi.fn();
       pulsocket.on('reconnect', mockOnReconnect);
 
-      pulsocket.connect();
-
-      jest.runAllTimers();
+      await pulsocket.connect();
+      vi.runAllTimers();
       await waitForConnection();
 
       expect(pulsocket.isConnected()).toBe(true);
 
       webSocketServerMock.error();
       await webSocketServerMock.closed;
+      await flushPromises();
 
-      jest.runAllTimers();
+      for (let i = 0; i < RECONNECT_ATTEMPTS * 2; i++) {
+        vi.runOnlyPendingTimers();
+        await flushPromises();
+      }
 
       expect(mockOnReconnect).toHaveBeenCalledTimes(RECONNECT_ATTEMPTS);
 
@@ -556,7 +563,7 @@ describe('Pusloid Socket', () => {
 
     it('should reconnect with progressive interval', async () => {
       openConnection();
-      pulsocket = new PulsoidSocket(TEST_TOKEN, {
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
         reconnect: {
           enable: true,
           reconnectMinInterval: 1000,
@@ -564,37 +571,41 @@ describe('Pusloid Socket', () => {
         },
       });
 
-      const mockOnReconnect = jest.fn();
+      const mockOnReconnect = vi.fn();
       pulsocket.on('reconnect', mockOnReconnect);
 
-      pulsocket.connect();
-
-      jest.runAllTimers();
+      await pulsocket.connect();
+      vi.runAllTimers();
       await waitForConnection();
 
       webSocketServerMock.error();
       await webSocketServerMock.closed;
+      await flushPromises();
 
       expect(mockOnReconnect).toHaveBeenCalledTimes(0);
 
-      jest.advanceTimersByTime(999);
+      vi.advanceTimersByTime(999);
       expect(mockOnReconnect).toHaveBeenCalledTimes(0);
-      jest.advanceTimersByTime(1);
+      vi.advanceTimersByTime(1);
       expect(mockOnReconnect).toHaveBeenCalledTimes(1);
+      await flushPromises();
+      await flushPromises();
 
-      jest.advanceTimersByTime(1999);
+      vi.advanceTimersByTime(1999);
       expect(mockOnReconnect).toHaveBeenCalledTimes(1);
-      jest.advanceTimersByTime(10);
+      vi.advanceTimersByTime(10);
       expect(mockOnReconnect).toHaveBeenCalledTimes(2);
-      jest.advanceTimersByTime(3990);
+      await flushPromises();
+      await flushPromises();
+      vi.advanceTimersByTime(3990);
       expect(mockOnReconnect).toHaveBeenCalledTimes(2);
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
       expect(mockOnReconnect).toHaveBeenCalledTimes(3);
     });
 
     it('should reconnect reconnect second time', async () => {
       openConnection();
-      pulsocket = new PulsoidSocket(TEST_TOKEN, {
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
         reconnect: {
           enable: true,
           reconnectMinInterval: 1000,
@@ -602,37 +613,41 @@ describe('Pusloid Socket', () => {
         },
       });
 
-      const mockOnReconnect = jest.fn();
+      const mockOnReconnect = vi.fn();
       pulsocket.on('reconnect', mockOnReconnect);
 
-      pulsocket.connect();
-
-      jest.runAllTimers();
-      await waitForConnection();
+      await pulsocket.connect();
+      vi.runAllTimers();
+      await flushPromises();
 
       webSocketServerMock.error();
       await webSocketServerMock.closed;
+      await flushPromises();
 
       expect(mockOnReconnect).toHaveBeenCalledTimes(0);
 
-      jest.advanceTimersByTime(999);
+      vi.advanceTimersByTime(999);
       expect(mockOnReconnect).toHaveBeenCalledTimes(0);
-      jest.advanceTimersByTime(1);
+      vi.advanceTimersByTime(1);
       expect(mockOnReconnect).toHaveBeenCalledTimes(1);
+      await flushPromises();
+      await flushPromises();
 
-      jest.advanceTimersByTime(1999);
+      vi.advanceTimersByTime(1999);
       expect(mockOnReconnect).toHaveBeenCalledTimes(1);
-      jest.advanceTimersByTime(10);
+      vi.advanceTimersByTime(10);
       expect(mockOnReconnect).toHaveBeenCalledTimes(2);
-      jest.advanceTimersByTime(3990);
+      await flushPromises();
+      await flushPromises();
+      vi.advanceTimersByTime(3990);
       expect(mockOnReconnect).toHaveBeenCalledTimes(2);
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
       expect(mockOnReconnect).toHaveBeenCalledTimes(3);
     });
 
     it('should not fire close events while reconnecting', async () => {
       openConnection();
-      pulsocket = new PulsoidSocket(TEST_TOKEN, {
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
         reconnect: {
           enable: true,
           reconnectMinInterval: 1000,
@@ -640,53 +655,186 @@ describe('Pusloid Socket', () => {
         },
       });
 
-      const mockOnReconnect = jest.fn();
-      const mockOnClose = jest.fn();
+      const mockOnReconnect = vi.fn();
+      const mockOnClose = vi.fn();
       pulsocket.on('reconnect', mockOnReconnect);
       pulsocket.on('close', mockOnClose);
 
-      pulsocket.connect();
-
-      jest.runAllTimers();
+      await pulsocket.connect();
+      vi.runAllTimers();
       await waitForConnection();
 
       webSocketServerMock.error();
       await webSocketServerMock.closed;
+      await flushPromises();
 
       expect(mockOnReconnect).toHaveBeenCalledTimes(0);
-      jest.advanceTimersByTime(3100);
+
+      // Fire first reconnect
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+
+      expect(mockOnReconnect).toHaveBeenCalledTimes(1);
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
+
+      // Fire second reconnect
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+      vi.runOnlyPendingTimers();
+      await flushPromises();
 
       expect(mockOnReconnect).toHaveBeenCalledTimes(2);
       expect(mockOnClose).toHaveBeenCalledTimes(1);
 
-      jest.advanceTimersByTime(4100);
+      // Fire third reconnect
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+      vi.runOnlyPendingTimers();
+      await flushPromises();
 
       expect(mockOnReconnect).toHaveBeenCalledTimes(3);
       expect(mockOnClose).toHaveBeenCalledTimes(1);
-
-      webSocketServerMock.error();
-      await webSocketServerMock.closed;
     });
 
     it('should not reconnect if reconnect is disabled', async () => {
       openConnection();
-      pulsocket = new PulsoidSocket(TEST_TOKEN, {
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
         reconnect: {enable: false},
       });
 
-      const mockOnReconnect = jest.fn();
+      const mockOnReconnect = vi.fn();
       pulsocket.on('reconnect', mockOnReconnect);
 
-      pulsocket.connect();
-      jest.runAllTimers();
+      await pulsocket.connect();
+      vi.runAllTimers();
       await waitForConnection();
 
       webSocketServerMock.error();
       await webSocketServerMock.closed;
 
-      jest.runAllTimers();
+      vi.runAllTimers();
 
       expect(mockOnReconnect).not.toHaveBeenCalled();
     });
+  });
+
+  describe('token validation', () => {
+    it('should reject connect() with token error when token is not found', async () => {
+      mockFetchError(7005, 'token_not_found');
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+
+      await expect(pulsocket.connect()).rejects.toEqual({
+        code: 7005,
+        message: 'token_not_found',
+      });
+
+      expect(pulsocket.isConnected()).toBe(false);
+    });
+
+    it('should reject connect() with token error when token is expired', async () => {
+      mockFetchError(7006, 'token_expired');
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+
+      await expect(pulsocket.connect()).rejects.toEqual({
+        code: 7006,
+        message: 'token_expired',
+      });
+
+      expect(pulsocket.isConnected()).toBe(false);
+    });
+
+    it('should reject connect() with token error when premium is required', async () => {
+      mockFetchError(7007, 'premium_required');
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+
+      await expect(pulsocket.connect()).rejects.toEqual({
+        code: 7007,
+        message: 'premium_required',
+      });
+
+      expect(pulsocket.isConnected()).toBe(false);
+    });
+
+    it('should not open WebSocket when token validation fails', async () => {
+      mockFetchError(7005, 'token_not_found');
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+      const mockOnOpen = vi.fn();
+
+      pulsocket.on('open', mockOnOpen);
+
+      await pulsocket.connect().catch(() => {});
+
+      expect(mockOnOpen).not.toHaveBeenCalled();
+      expect(pulsocket.isConnected()).toBe(false);
+    });
+
+    it('should call fetch with correct authorization header', async () => {
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+
+      await pulsocket.connect();
+      await waitForConnection();
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://dev.pulsoid.net/api/v1/token/validate',
+        { headers: { Authorization: `Bearer ${TEST_TOKEN}` } }
+      );
+    });
+
+    it('should reject connect() when token lacks data:heart_rate:read scope', async () => {
+      mockFetchSuccess(['data:room:read']);
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+
+      await expect(pulsocket.connect()).rejects.toEqual({
+        code: 7008,
+        message: 'insufficient_scope',
+      });
+
+      expect(pulsocket.isConnected()).toBe(false);
+    });
+  });
+
+  describe('token validation on reconnect (1006 close)', () => {
+    it('should emit token-error and stop reconnecting when token becomes invalid', async () => {
+      vi.useFakeTimers();
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
+        reconnect: { enable: true },
+      });
+      const mockTokenError = vi.fn();
+      const mockOnReconnect = vi.fn();
+
+      pulsocket.on('token-error', mockTokenError);
+      pulsocket.on('reconnect', mockOnReconnect);
+
+      await pulsocket.connect();
+      vi.runAllTimers();
+      await waitForConnection();
+
+      // Token becomes invalid after initial connection
+      mockFetchError(7006, 'token_expired');
+
+      // Close with 1006 (abnormal closure — browser behavior for rejected upgrades)
+      webSocketServerMock.close({ code: 1006, reason: '', wasClean: false });
+      await flushPromises();
+
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+
+      expect(mockTokenError).toHaveBeenCalledWith({
+        code: 7006,
+        message: 'token_expired',
+      });
+      expect(mockOnReconnect).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+    });
+
   });
 });

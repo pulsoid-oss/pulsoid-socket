@@ -3,10 +3,410 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pulsoid Socket Example</title>
+  <title>Pulsoid Socket Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand-red: #e63b2e;
+      --brand-red-light: #f52313;
+      --brand-teal: #07aba1;
+      --brand-teal-light: #27bacc;
+      --brand-yellow: #fdaf08;
+      --brand-grey: #9696a3;
+
+      --bg: #0f0f14;
+      --layer-1: #1e1e24;
+      --layer-2: #36363d;
+      --layer-3: #43434d;
+      --layer-4: #51515c;
+
+      --surface-01: #1e1e24;
+      --surface-02: #36363d;
+      --surface-03: #363641;
+
+      --border-1: #2b2b33;
+      --border-2: #36363d;
+
+      --text-primary: #ffffff;
+      --text-secondary: #71717a;
+      --text-secondary-2: #6e6e78;
+      --text-secondary-3: #90909a;
+      --text-tertiary: #6c6c79;
+
+      --text-success: #69fff2;
+      --text-warning: #ffc87b;
+      --text-failed: #ff4c4c;
+      --text-not-started: #9a9aa6;
+
+      --fill-default: #444450;
+      --fill-success: #003733;
+      --fill-success-strong: #00a59b;
+      --fill-warning: #412d00;
+      --fill-failed: #4a0000;
+      --fill-not-started: #2e2e38;
+
+      --radius-btn: 6px;
+      --radius-panel: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 20px;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border-1);
+      gap: 12px;
+    }
+
+    .header svg { flex-shrink: 0; }
+
+    .header-title {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 24px;
+      color: var(--text-primary);
+    }
+
+    .header-version {
+      font-size: 12px;
+      line-height: 16px;
+      color: var(--text-tertiary);
+      background: var(--fill-not-started);
+      padding: 2px 8px;
+      border-radius: var(--radius-btn);
+    }
+
+    /* Main content */
+    .main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* Setup form */
+    .setup-card {
+      background: var(--surface-01);
+      border: 1px solid var(--border-1);
+      border-radius: var(--radius-panel);
+      padding: 20px;
+    }
+
+    .setup-fields {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 500;
+      color: var(--text-secondary-3);
+      margin-bottom: 6px;
+    }
+
+    .field input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border-1);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      border-radius: var(--radius-btn);
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 20px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .field input::placeholder { color: var(--text-tertiary); }
+    .field input:focus { border-color: var(--brand-teal); }
+
+    .setup-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      padding: 8px 20px;
+      border-radius: var(--radius-btn);
+      border: none;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 20px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { opacity: 0.7; }
+
+    .btn-connect {
+      background: var(--brand-teal);
+      color: var(--text-primary);
+    }
+
+    .btn-disconnect {
+      background: var(--brand-red);
+      color: var(--text-primary);
+      display: none;
+    }
+
+    /* Dashboard */
+    .dashboard {
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 24px;
+    }
+    .dashboard.active { display: flex; }
+
+    .panel {
+      background: var(--surface-01);
+      border: 1px solid var(--border-1);
+      border-radius: var(--radius-panel);
+      padding: 16px 20px;
+    }
+
+    .panel-header {
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    /* Status row */
+    .status-row {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+
+    .status-item .s-label {
+      font-size: 10px;
+      line-height: 12px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 4px;
+    }
+
+    .status-item .s-value {
+      font-size: 14px;
+      line-height: 20px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot-success { background: var(--fill-success-strong); }
+    .dot-warning { background: var(--brand-yellow); }
+    .dot-failed { background: var(--text-failed); }
+    .dot-neutral { background: var(--fill-default); }
+
+    .mode-tag {
+      font-size: 10px;
+      line-height: 12px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: var(--radius-btn);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .mode-tag.standard { background: var(--fill-success); color: var(--text-success); }
+    .mode-tag.room { background: rgba(39,186,204,0.12); color: var(--brand-teal-light); }
+
+    /* BPM */
+    .bpm-panel { text-align: center; padding: 28px 20px; }
+
+    .bpm-number {
+      font-size: 72px;
+      line-height: 1;
+      font-weight: 400;
+      color: var(--text-primary);
+      transition: color 0.2s;
+    }
+    .bpm-number.live { color: var(--brand-red); }
+
+    .bpm-unit {
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--text-secondary);
+      margin-top: 6px;
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .bpm-pulse-wrapper {
+      display: inline-block;
+      position: relative;
+    }
+
+    .bpm-pulse-ring {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid var(--brand-red);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .bpm-pulse-ring.animate {
+      animation: pulse-ring 0.8s ease-out;
+    }
+
+    /* Event log */
+    .log-list {
+      max-height: 320px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--layer-3) transparent;
+    }
+
+    .log-list::-webkit-scrollbar { width: 4px; }
+    .log-list::-webkit-scrollbar-track { background: transparent; }
+    .log-list::-webkit-scrollbar-thumb { background: var(--layer-3); border-radius: 2px; }
+
+    .log-entry {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 4px 0;
+      font-size: 12px;
+      line-height: 16px;
+      border-bottom: 1px solid var(--border-1);
+      animation: log-in 0.15s ease-out;
+    }
+
+    @keyframes log-in {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .log-time {
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .log-tag {
+      flex-shrink: 0;
+      min-width: 120px;
+      font-weight: 500;
+    }
+
+    .log-tag.open { color: var(--text-success); }
+    .log-tag.close { color: var(--text-failed); }
+    .log-tag.error { color: var(--text-warning); }
+    .log-tag.heart-rate { color: var(--brand-red); }
+    .log-tag.online { color: var(--fill-success-strong); }
+    .log-tag.offline { color: var(--brand-yellow); }
+    .log-tag.reconnect { color: var(--brand-teal-light); }
+    .log-tag.token-error { color: var(--text-failed); }
+    .log-tag.room-member-updated { color: var(--brand-teal-light); }
+    .log-tag.room-member-removed { color: var(--text-warning); }
+    .log-tag.room-updated { color: var(--brand-grey); }
+
+    .log-data {
+      color: var(--text-secondary-2);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .log-empty {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 16px;
+      text-align: center;
+      padding: 24px 0;
+    }
+  </style>
 </head>
 <body>
-  <div id="app"></div>
+
+  <div class="header">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#e63b2e"/>
+    </svg>
+    <span class="header-title">Pulsoid Socket</span>
+    <span class="header-version">v2.0.0</span>
+  </div>
+
+  <div class="main">
+    <div class="setup-card">
+      <div class="setup-fields">
+        <div class="field">
+          <label for="token-input">Access Token</label>
+          <input id="token-input" type="text" placeholder="Paste your Pulsoid token" />
+        </div>
+        <div class="field">
+          <label for="room-input">Room ID <span style="color:var(--text-tertiary)">(optional)</span></label>
+          <input id="room-input" type="text" placeholder="Leave empty for standard mode" />
+        </div>
+      </div>
+      <div class="setup-actions">
+        <button class="btn btn-connect" id="connect-btn">Connect</button>
+        <button class="btn btn-disconnect" id="disconnect-btn">Disconnect</button>
+      </div>
+    </div>
+
+    <div class="dashboard" id="dashboard">
+      <div class="panel">
+        <div class="status-row" id="status-row"></div>
+      </div>
+
+      <div class="panel bpm-panel">
+        <div class="bpm-pulse-wrapper">
+          <div class="bpm-pulse-ring" id="bpm-ring"></div>
+          <div class="bpm-number" id="bpm-value">--</div>
+        </div>
+        <div class="bpm-unit">BPM</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Event Log</div>
+        <div class="log-list" id="log-list">
+          <div class="log-empty" id="log-empty">Waiting for events...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="./index.ts"></script>
 </body>
 </html>

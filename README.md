@@ -23,7 +23,7 @@ In order to use the client, you need to have a valid authorization token. Check 
 ```javascript
 import PulsoidSocket from '@pulsoid/socket';
 
-const pulsocket = new PulsoidSocket('YOUR_AUTH_TOKEN');
+const pulsocket = PulsoidSocket.create('YOUR_AUTH_TOKEN');
 
 pulsocket.on('open', (event) => {
   console.log('Start listening to heart rate data');
@@ -50,7 +50,7 @@ To add Pulsoid socket put this in head tag of your html
 ```
 Then, in your js code you can init and use pulsoid socket like this 
 ```javascript
-const pulsocket = new PulsoidSocket('REPLACE WITH YOUR TOKEN');
+const pulsocket = PulsoidSocket.create('REPLACE WITH YOUR TOKEN');
 
 console.log(pulsocket.isConnected());
 
@@ -75,7 +75,7 @@ pulsocket.connect();
 
 | Method                                                       | Description                                                                                                  |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `constructor(token: string, options?: PulsoidSocketOptions)` | Creates a new instance of the client.                                                                        |
+| `PulsoidSocket.create(token: string, options?: PulsoidSocketOptions)` | Creates a new instance of the client.                                                                        |
 | `connect()`                                                  | Connects to the websocket server                                                                             |
 | `disconnect()`                                               | Disconnects from the websocket server                                                                        |
 | `on(eventType: EventType, callback: Callback `               | Adds a listener for the specified event type.                                                                |
@@ -93,6 +93,7 @@ pulsocket.connect();
 | `'online'`     | `() => void`                            | Called when heart rate monitor device sends first message                                           |
 | `'offline'`    | `() => void`                            | Called when there are no incomming messages from heart rate monitor device for more than 30 seconds |
 | `'reconnect'`  | `(event: {attempt: number}) => void`    | Called when the client is trying to reconnect                                                       |
+| `'token-error'`| `(error: PulsoidTokenError) => void`    | Called when token re-validation fails during reconnect (e.g. token expired, revoked, or premium required) |
 
 `PulsoidSocketOptions` interface:
 
@@ -102,7 +103,7 @@ interface PulsoidSocketOptions {
   // Math.min(maxInterval, minInterval * Math.pow(2, attempt))
   reconnect?: {
     // Turn on/off the reconnect option. true by default
-    enabled?: boolean;
+    enable?: boolean;
 
     // Base value for reconnect interval. 2000 by default
     reconnectMinInterval?: number;
@@ -110,7 +111,7 @@ interface PulsoidSocketOptions {
     // Max value for reconnect interval. 10000 by default
     reconnectMaxInterval?: number;
 
-    // Number of attempts before stopping the reconect. 10 000 by default. trying to reconnect really hard
+    // Number of attempts before stopping the reconnect. 100 by default
     reconnectAttempts?: number;
   };
 }
@@ -137,3 +138,21 @@ specification of error codes:
 | Code | Description |
 | ---- | ----------- |
 | 412 | User doesn't have any heart rate data |
+
+`PulsoidTokenError` interface:
+
+```typescript
+interface PulsoidTokenError {
+  code: number; // Error code
+  message: string; // Error message
+}
+```
+
+Token error codes:
+| Code | Message | Description |
+| ---- | ------- | ----------- |
+| 7005 | `token_not_found` | The token is invalid or does not exist |
+| 7006 | `token_expired` | The token has expired |
+| 7007 | `premium_required` | A premium subscription is required |
+
+**Note:** `connect()` is async and validates the token before opening the WebSocket. If the token is invalid, `connect()` will reject with a `PulsoidTokenError`. During reconnect, if an abnormal closure (code 1006) is detected, the token is re-validated — if invalid, the `'token-error'` event fires and reconnection stops.
