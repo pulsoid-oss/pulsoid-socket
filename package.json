@@ -19,6 +19,7 @@
     "build": "rm -rf ./dist && vite build && tsc --project tsconfig.build.json --declaration --emitDeclarationOnly",
     "dev": "vite --config vite.config.ts",
     "start-example": "vite example --host",
+    "build:demo": "vite build --config vite.config.demo.ts",
     "test": "vitest run",
     "release": "npm run build && npm version patch && npm publish",
     "release:minor": "npm run build && npm version minor && npm publish",
