@@ -12,8 +12,20 @@ Supports two modes:
 
 ### Obtain a token
 
-1. Go to [docs.pulsoid.net](https://docs.pulsoid.net/) and follow the authorization guide to get an access token.
-2. The token must have the `data:heart_rate:read` scope for standard mode, or `data:room:read` for room mode.
+> **Just want to test or use it for yourself?** Use [Manual Token Issuing](https://docs.pulsoid.net/access-token-management/manual-token-issuing) — no client credentials needed. Create a token in seconds and start receiving your heart rate data right away.
+
+For production apps, choose the flow that fits your use case:
+
+| Use case | Recommended flow |
+| --- | --- |
+| Personal use / testing | [Manual Token Issuing](https://docs.pulsoid.net/access-token-management/manual-token-issuing) (no client credentials needed) |
+| Websites | [Implicit Grant](https://docs.pulsoid.net/access-token-management/oauth2-implicit-grant) |
+| Desktop apps with deep links | [Implicit Grant](https://docs.pulsoid.net/access-token-management/oauth2-implicit-grant) |
+| Backend servers | [Authorization Code Grant](https://docs.pulsoid.net/access-token-management/oauth2-authorization-code-grant) |
+| Plugins / desktop apps | [Device Authorization Flow](https://docs.pulsoid.net/access-token-management/oauth-2-device-authorization-flow) |
+| Enterprise | Contact [support@pulsoid.net](mailto:support@pulsoid.net) or [Discord](https://discord.gg/tZktPS5) |
+
+For flows other than manual issuing, request client credentials via the [API request form](https://pulsoid.net/s/form-api). The token must have the `data:heart_rate:read` scope for standard mode, or `data:room:read` for room mode.
 
 ### Install
 

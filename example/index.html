@@ -388,6 +388,90 @@
     .links a svg {
       flex-shrink: 0;
     }
+
+    /* Token guide */
+    .token-guide {
+      background: var(--surface-01);
+      border: 1px solid var(--border-1);
+      border-radius: var(--radius-panel);
+      margin-bottom: 16px;
+    }
+
+    .token-guide summary {
+      padding: 14px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary-3);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .token-guide summary::-webkit-details-marker { display: none; }
+
+    .token-guide summary .chevron {
+      transition: transform 0.15s;
+      flex-shrink: 0;
+    }
+
+    .token-guide[open] summary .chevron {
+      transform: rotate(90deg);
+    }
+
+    .token-guide-body {
+      padding: 0 20px 16px;
+      font-size: 13px;
+      line-height: 20px;
+      color: var(--text-secondary-3);
+    }
+
+    .token-guide-body .tip {
+      background: rgba(7, 171, 161, 0.08);
+      border: 1px solid rgba(7, 171, 161, 0.2);
+      border-radius: var(--radius-btn);
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      line-height: 20px;
+      color: var(--text-success);
+    }
+
+    .token-guide-body .tip strong {
+      color: var(--text-primary);
+    }
+
+    .token-guide-body a {
+      color: var(--brand-teal-light);
+      text-decoration: none;
+    }
+
+    .token-guide-body a:hover {
+      text-decoration: underline;
+    }
+
+    .token-guide-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 18px;
+    }
+
+    .token-guide-body th {
+      text-align: left;
+      font-weight: 500;
+      color: var(--text-secondary);
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border-1);
+    }
+
+    .token-guide-body td {
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border-1);
+      color: var(--text-secondary-3);
+    }
   </style>
 </head>
 <body>
@@ -401,6 +485,27 @@
   </div>
 
   <div class="main">
+    <details class="token-guide">
+      <summary>
+        <svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        How to get a token
+      </summary>
+      <div class="token-guide-body">
+        <div class="tip">
+          <strong>Just testing or personal use?</strong> Use <a href="https://docs.pulsoid.net/access-token-management/manual-token-issuing" target="_blank" rel="noopener">Manual Token Issuing</a> — no client credentials needed. Create a token in seconds and paste it below.
+        </div>
+        <p>For production apps, choose the flow that fits your use case:</p>
+        <table>
+          <tr><th>Use case</th><th>Flow</th></tr>
+          <tr><td>Personal / testing</td><td><a href="https://docs.pulsoid.net/access-token-management/manual-token-issuing" target="_blank" rel="noopener">Manual Token Issuing</a></td></tr>
+          <tr><td>Websites</td><td><a href="https://docs.pulsoid.net/access-token-management/oauth2-implicit-grant" target="_blank" rel="noopener">Implicit Grant</a></td></tr>
+          <tr><td>Backend servers</td><td><a href="https://docs.pulsoid.net/access-token-management/oauth2-authorization-code-grant" target="_blank" rel="noopener">Authorization Code Grant</a></td></tr>
+          <tr><td>Plugins / desktop apps</td><td><a href="https://docs.pulsoid.net/access-token-management/oauth-2-device-authorization-flow" target="_blank" rel="noopener">Device Authorization Flow</a></td></tr>
+          <tr><td>Enterprise</td><td><a href="mailto:support@pulsoid.net">support@pulsoid.net</a> / <a href="https://discord.gg/tZktPS5" target="_blank" rel="noopener">Discord</a></td></tr>
+        </table>
+      </div>
+    </details>
+
     <div class="setup-card">
       <div class="setup-fields">
         <div class="field">
