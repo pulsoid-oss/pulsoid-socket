@@ -93,7 +93,7 @@
 
     /* Main content */
     .main {
-      max-width: 720px;
+      max-width: 1120px;
       margin: 0 auto;
       padding: 32px 24px;
     }
@@ -177,11 +177,50 @@
     /* Dashboard */
     .dashboard {
       display: none;
-      flex-direction: column;
       gap: 16px;
       margin-top: 24px;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto 1fr;
     }
-    .dashboard.active { display: flex; }
+    .dashboard.active { display: grid; }
+
+    .col-left {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .col-right {
+      display: flex;
+      flex-direction: column;
+      grid-row: 1 / -1;
+      grid-column: 2;
+      min-height: 0;
+    }
+
+    .col-right .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .col-right .log-list {
+      flex: 1;
+      max-height: none;
+    }
+
+    @media (max-width: 768px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+      .col-right {
+        grid-row: auto;
+        grid-column: auto;
+      }
+      .col-right .log-list {
+        max-height: 320px;
+      }
+    }
 
     .panel {
       background: var(--surface-01);
@@ -543,22 +582,26 @@
     </div>
 
     <div class="dashboard" id="dashboard">
-      <div class="panel">
-        <div class="status-row" id="status-row"></div>
-      </div>
-
-      <div class="panel bpm-panel">
-        <div class="bpm-pulse-wrapper">
-          <div class="bpm-pulse-ring" id="bpm-ring"></div>
-          <div class="bpm-number" id="bpm-value">--</div>
+      <div class="col-left">
+        <div class="panel">
+          <div class="status-row" id="status-row"></div>
         </div>
-        <div class="bpm-unit">BPM</div>
+
+        <div class="panel bpm-panel">
+          <div class="bpm-pulse-wrapper">
+            <div class="bpm-pulse-ring" id="bpm-ring"></div>
+            <div class="bpm-number" id="bpm-value">--</div>
+          </div>
+          <div class="bpm-unit">BPM</div>
+        </div>
       </div>
 
-      <div class="panel">
-        <div class="panel-header">Event Log</div>
-        <div class="log-list" id="log-list">
-          <div class="log-empty" id="log-empty">Waiting for events...</div>
+      <div class="col-right">
+        <div class="panel">
+          <div class="panel-header">Event Log</div>
+          <div class="log-list" id="log-list">
+            <div class="log-empty" id="log-empty">Waiting for events...</div>
+          </div>
         </div>
       </div>
     </div>
