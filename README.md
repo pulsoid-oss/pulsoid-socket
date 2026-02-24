@@ -1,67 +1,101 @@
-# pulsoid-socket
+# @pulsoid/socket
 
-Zero dependency client for consuming [Heart Rate Data](https://github.com/pulsoid-oss/pulsoid-api/wiki/Heart-Rate-Data-API#read-heart-rate-via-websocket) from [pulsoid-api](https://github.com/pulsoid-oss/pulsoid-api).
+Zero-dependency WebSocket client for consuming real-time heart rate data from [Pulsoid](https://pulsoid.net).
+
+Supports two modes:
+- **Standard** — stream your own heart rate
+- **Room** — stream heart rate data from all members of a shared room
+
+[Live Demo](https://pulsoid-oss.github.io/pulsoid-socket/) · [API Docs](https://docs.pulsoid.net/) · [Discord](https://discord.gg/tZktPS5)
 
 ## Getting started
 
-To install the package with npm, run:
+### Obtain a token
+
+1. Go to [docs.pulsoid.net](https://docs.pulsoid.net/) and follow the authorization guide to get an access token.
+2. The token must have the `data:heart_rate:read` scope for standard mode, or `data:room:read` for room mode.
+
+### Install
 
 ```bash
 npm install @pulsoid/socket
 ```
 
-or with yarn:
-
-```bash
-yarn add @pulsoid/socket
-```
-
 ## Basic usage
-
-In order to use the client, you need to have a valid authorization token. Check out how to get one [here](https://github.com/pulsoid-oss/pulsoid-api/wiki/OAuth2-Authorization-Code-Grant);
 
 ```javascript
 import PulsoidSocket from '@pulsoid/socket';
 
-const pulsocket = PulsoidSocket.create('YOUR_AUTH_TOKEN');
-
-pulsocket.on('open', (event) => {
-  console.log('Start listening to heart rate data');
-});
-pulsocket.on('heart-rate', (data) => {
-  console.log(`Current heart rate is ${data.heartRate}`);
-});
-pulsocket.on('close', (event) => {
-  console.log('Stop listening to heart rate data');
-});
-
-pulsocket.connect();
-```
-
-## Using CDN
-
-You can also use the client directly from CDN. The client is available on [unpkg](https://unpkg.com/@pulsoid/socket@1.1.0/dist/index.js) and [jsdelivr](https://cdn.jsdelivr.net/npm/@pulsoid/socket).
-
-Check the [codepen example](https://codepen.io/xmityaz/pen/PoaVdRK) on basic PulsoidSocket usage with CDN
-
-To add Pulsoid socket put this in head tag of your html
-```html
-<script crossorigin src="https://unpkg.com/@pulsoid/socket@1.1.1/dist/index.js"></script>
-```
-Then, in your js code you can init and use pulsoid socket like this 
-```javascript
-const pulsocket = PulsoidSocket.create('REPLACE WITH YOUR TOKEN');
-
-console.log(pulsocket.isConnected());
+const pulsocket = PulsoidSocket.create('YOUR_ACCESS_TOKEN');
 
 pulsocket.on('open', () => {
   console.log('Connected');
 });
 
 pulsocket.on('heart-rate', (data) => {
-  console.log(data);
+  console.log(`Heart rate: ${data.heartRate} BPM`);
+});
 
-  console.log(`Current heart rate is ${data.heartRate}`);
+pulsocket.on('online', () => {
+  console.log('Heart rate monitor is sending data');
+});
+
+pulsocket.on('offline', () => {
+  console.log('No data from monitor for 30 seconds');
+});
+
+pulsocket.on('close', () => {
+  console.log('Disconnected');
+});
+
+// connect() validates the token then opens the WebSocket
+await pulsocket.connect();
+
+// later…
+pulsocket.disconnect();
+```
+
+## Room mode
+
+```javascript
+import { PulsoidSocket } from '@pulsoid/socket';
+// or: import { PulsoidRoomSocket } from '@pulsoid/socket';
+
+const room = PulsoidSocket.createRoom('YOUR_ACCESS_TOKEN', 'ROOM_ID', {
+  // optional: filter which event kinds to subscribe to
+  kinds: ['heart_rate', 'room_member_updated'],
+});
+
+room.on('heart-rate', (data) => {
+  console.log(`${data.profileId}: ${data.bpm} BPM`);
+});
+
+room.on('room-member-updated', (data) => {
+  console.log(`Member ${data.profileId} config updated`);
+});
+
+room.on('room-member-removed', (data) => {
+  console.log(`Member ${data.profileId} left`);
+});
+
+room.on('room-updated', (data) => {
+  console.log(`Room ${data.roomId} config updated`);
+});
+
+await room.connect();
+```
+
+## Using CDN
+
+```html
+<script crossorigin src="https://unpkg.com/@pulsoid/socket@2/dist/index.cjs.js"></script>
+```
+
+```javascript
+const pulsocket = PulsoidSocket.create('YOUR_ACCESS_TOKEN');
+
+pulsocket.on('heart-rate', (data) => {
+  console.log(`Heart rate: ${data.heartRate}`);
 });
 
 pulsocket.connect();
@@ -71,88 +105,155 @@ pulsocket.connect();
 
 ## API
 
-### List of available Methods on PulsoidSocket instance
+### PulsoidSocket
 
-| Method                                                       | Description                                                                                                  |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `PulsoidSocket.create(token: string, options?: PulsoidSocketOptions)` | Creates a new instance of the client.                                                                        |
-| `connect()`                                                  | Connects to the websocket server                                                                             |
-| `disconnect()`                                               | Disconnects from the websocket server                                                                        |
-| `on(eventType: EventType, callback: Callback `               | Adds a listener for the specified event type.                                                                |
-| `off(eventType: EventType, callback?: Callback)`             | Removes a listener for the specified event type. Removes all handlers if callback parameter is not specified |
-| `isConnected()`                                              | Returns true if socket connection is alive                                                                   |
+#### Static methods
 
-### List of available `EventType`'s for `on` method
+| Method | Description |
+| --- | --- |
+| `PulsoidSocket.create(token, options?)` | Create a standard socket instance |
+| `PulsoidSocket.createRoom(token, roomId, options?)` | Create a room socket instance |
 
-| Event Type     | Callback Type                           | Description                                                                                         |
-| -------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `'open'`       | `(event: Event) => void`                | Called when the connection is established                                                           |
-| `'heart-rate'` | `(heartRate: HeartRateMessage) => void` | Called when heart rate message is recieved                                                          |
-| `'close'`      | `(event: CloseEvent) => void`           | Called when the connection is closed                                                                |
-| `'error'`      | `(error: PulsoidSocketError) => void`   | Called when an error occurs                                                                         |
-| `'online'`     | `() => void`                            | Called when heart rate monitor device sends first message                                           |
-| `'offline'`    | `() => void`                            | Called when there are no incomming messages from heart rate monitor device for more than 30 seconds |
-| `'reconnect'`  | `(event: {attempt: number}) => void`    | Called when the client is trying to reconnect                                                       |
-| `'token-error'`| `(error: PulsoidTokenError) => void`    | Called when token re-validation fails during reconnect (e.g. token expired, revoked, or premium required) |
+#### Instance methods
 
-`PulsoidSocketOptions` interface:
+| Method | Description |
+| --- | --- |
+| `connect()` | Validate the token and open the WebSocket. Returns a `Promise` that rejects with `PulsoidTokenError` if the token is invalid. |
+| `disconnect()` | Close the connection and stop auto-reconnect |
+| `on(event, callback)` | Add an event listener |
+| `off(event, callback?)` | Remove a listener, or all listeners for the event if no callback is given |
+| `isConnected()` | `true` if the WebSocket is open |
+| `isOnline()` | `true` if the heart rate monitor is actively sending data |
+
+#### Events
+
+| Event | Callback | Description |
+| --- | --- | --- |
+| `'open'` | `(event: Event) => void` | Connection established |
+| `'heart-rate'` | `(data: PulsoidHeartRateMessage) => void` | Heart rate data received |
+| `'close'` | `(event: CloseEvent) => void` | Connection closed |
+| `'error'` | `(event: Event) => void` | WebSocket error |
+| `'online'` | `() => void` | Monitor started sending data |
+| `'offline'` | `() => void` | No data from monitor for 30 seconds |
+| `'reconnect'` | `(e: { attempt: number }) => void` | Reconnect attempt |
+| `'token-error'` | `(e: PulsoidTokenError) => void` | Token validation failed during reconnect |
+
+### PulsoidRoomSocket
+
+Created via `PulsoidSocket.createRoom()` or imported directly:
+
+```javascript
+import { PulsoidRoomSocket } from '@pulsoid/socket';
+const room = PulsoidRoomSocket.create(token, roomId, options?);
+```
+
+#### Events
+
+Shares `open`, `close`, `error`, `reconnect`, and `token-error` with `PulsoidSocket`. Additional room events:
+
+| Event | Callback | Description |
+| --- | --- | --- |
+| `'heart-rate'` | `(data: PulsoidRoomHeartRate) => void` | Heart rate from a room member |
+| `'room-member-updated'` | `(data: PulsoidRoomMemberUpdated) => void` | A member's config was updated |
+| `'room-member-removed'` | `(data: PulsoidRoomMemberRemoved) => void` | A member was removed from the room |
+| `'room-updated'` | `(data: PulsoidRoomUpdated) => void` | The room config was updated |
+
+---
+
+## Types
+
+### PulsoidSocketOptions
 
 ```typescript
 interface PulsoidSocketOptions {
-  // Reconnect timing formula:
-  // Math.min(maxInterval, minInterval * Math.pow(2, attempt))
-  reconnect?: {
-    // Turn on/off the reconnect option. true by default
-    enable?: boolean;
-
-    // Base value for reconnect interval. 2000 by default
-    reconnectMinInterval?: number;
-
-    // Max value for reconnect interval. 10000 by default
-    reconnectMaxInterval?: number;
-
-    // Number of attempts before stopping the reconnect. 100 by default
-    reconnectAttempts?: number;
-  };
+  reconnect?: ReconnectOptions;
 }
 ```
 
-`HeartRateMessage` format:
+### PulsoidRoomSocketOptions
 
 ```typescript
-interface HeartRateMessage {
-  measuredAt: number; // Unix timestamp
-  heartRate: number; // Heart rate in BPM
+interface PulsoidRoomSocketOptions {
+  kinds?: PulsoidRoomEventKind[];  // default: all kinds
+  reconnect?: ReconnectOptions;
 }
+
+type PulsoidRoomEventKind =
+  | 'heart_rate'
+  | 'room_member_updated'
+  | 'room_member_removed'
+  | 'room_updated';
 ```
 
-`PulsoidSocketError` interface:
+### ReconnectOptions
+
+Reconnect interval formula: `Math.min(maxInterval, minInterval * 2^attempt)`
 
 ```typescript
-interface PulsoidSocketError {
-  code: number; // Error code
+interface ReconnectOptions {
+  enable?: boolean;               // default: true
+  reconnectMinInterval?: number;  // default: 2000 ms
+  reconnectMaxInterval?: number;  // default: 10000 ms
+  reconnectAttempts?: number;     // default: 100
 }
 ```
 
-specification of error codes:
-| Code | Description |
-| ---- | ----------- |
-| 412 | User doesn't have any heart rate data |
+### Data types
 
-`PulsoidTokenError` interface:
+```typescript
+interface PulsoidHeartRateMessage {
+  heartRate: number;   // BPM
+  measuredAt: number;  // Unix timestamp
+}
+
+interface PulsoidRoomHeartRate {
+  profileId: string;
+  bpm: number;
+  timestamp: string;
+}
+
+interface PulsoidRoomMemberUpdated {
+  profileId: string;
+  config: Record<string, unknown>;
+  timestamp: string;
+}
+
+interface PulsoidRoomMemberRemoved {
+  profileId: string;
+  timestamp: string;
+}
+
+interface PulsoidRoomUpdated {
+  roomId: string;
+  config: Record<string, unknown>;
+  timestamp: string;
+}
+```
+
+### PulsoidTokenError
 
 ```typescript
 interface PulsoidTokenError {
-  code: number; // Error code
-  message: string; // Error message
+  code: number;
+  message: string;
 }
 ```
 
-Token error codes:
 | Code | Message | Description |
-| ---- | ------- | ----------- |
-| 7005 | `token_not_found` | The token is invalid or does not exist |
-| 7006 | `token_expired` | The token has expired |
-| 7007 | `premium_required` | A premium subscription is required |
+| --- | --- | --- |
+| 7005 | `token_not_found` | Token is invalid or does not exist |
+| 7006 | `token_expired` | Token has expired |
+| 7007 | `premium_required` | Premium subscription required |
+| 7008 | `insufficient_scope` | Token is missing the required scope |
 
-**Note:** `connect()` is async and validates the token before opening the WebSocket. If the token is invalid, `connect()` will reject with a `PulsoidTokenError`. During reconnect, if an abnormal closure (code 1006) is detected, the token is re-validated — if invalid, the `'token-error'` event fires and reconnection stops.
+## Links
+
+- [Pulsoid](https://pulsoid.net) — official website
+- [API Documentation](https://docs.pulsoid.net/) — how to obtain tokens and full API reference
+- [Discord](https://discord.gg/tZktPS5) — community support
+- [GitHub](https://github.com/pulsoid-oss/pulsoid-socket) — source code and issues
+- [Live Demo](https://pulsoid-oss.github.io/pulsoid-socket/) — try it in the browser
+
+## License
+
+MIT
