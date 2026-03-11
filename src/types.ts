@@ -1,7 +1,15 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type EventCallback = (...args: any[]) => void;
 
+export type PulsoidTokenErrorType =
+  | 'forbidden'
+  | 'payment_required'
+  | 'network_error'
+  | 'insufficient_scope'
+  | 'unknown';
+
 export type PulsoidTokenError = {
+  type: PulsoidTokenErrorType;
   code: number;
   message: string;
 };

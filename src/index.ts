@@ -5,6 +5,7 @@ export type {
   PulsoidSocketOptions,
   PulsoidSocketEventType,
   PulsoidTokenError,
+  PulsoidTokenErrorType,
   ReconnectOptions,
   PulsoidRoomEventKind,
   PulsoidRoomHeartRate,

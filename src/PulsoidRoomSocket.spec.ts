@@ -78,6 +78,7 @@ describe('PulsoidRoomSocket', () => {
       roomSocket = PulsoidSocket.createRoom(TEST_TOKEN, TEST_ROOM_ID);
 
       await expect(roomSocket.connect()).rejects.toEqual({
+        type: 'forbidden',
         code: 7005,
         message: 'token_not_found',
       });
@@ -104,8 +105,9 @@ describe('PulsoidRoomSocket', () => {
       roomSocket = PulsoidSocket.createRoom(TEST_TOKEN, TEST_ROOM_ID);
 
       await expect(roomSocket.connect()).rejects.toEqual({
+        type: 'insufficient_scope',
         code: 7008,
-        message: 'insufficient_scope',
+        message: 'insufficient_scope: required scope "data:room:read" is missing',
       });
 
       expect(roomSocket.isConnected()).toBe(false);
@@ -408,6 +410,7 @@ describe('PulsoidRoomSocket', () => {
       await flushPromises();
 
       expect(mockTokenError).toHaveBeenCalledWith({
+        type: 'forbidden',
         code: 7006,
         message: 'token_expired',
       });

@@ -222,7 +222,7 @@ const room = PulsoidRoomSocket.create(token, roomId, options?);
 | `'close'` | `(event: CloseEvent) => void` | WebSocket connection closed. Fires before auto-reconnect kicks in. |
 | `'error'` | `(event: Event) => void` | WebSocket error occurred. |
 | `'reconnect'` | `(e: { attempt: number }) => void` | Auto-reconnect attempt starting. `attempt` is 1-indexed. |
-| `'token-error'` | `(e: PulsoidTokenError) => void` | Token validation failed during a reconnect attempt. Reconnection stops. See [Error types](#error-types). |
+| `'token-error'` | `(e: PulsoidTokenError) => void` | Token validation failed during a reconnect attempt. Non-retriable errors (`forbidden`, `insufficient_scope`) stop reconnection; retriable errors (`network_error`, `payment_required`, `unknown`) keep retrying. See [Error types](#error-types). |
 
 ### Room socket events
 
@@ -249,6 +249,7 @@ import type {
   PulsoidSocketOptions,
   PulsoidSocketEventType,
   PulsoidTokenError,
+  PulsoidTokenErrorType,
   ReconnectOptions,
   PulsoidRoomEventKind,
   PulsoidRoomHeartRate,
@@ -397,23 +398,40 @@ type PulsoidRoomSocketEventType =
 
 ### Error types
 
+#### `PulsoidTokenErrorType`
+
+```typescript
+type PulsoidTokenErrorType =
+  | 'forbidden'          // 403 — invalid, expired, or revoked token
+  | 'payment_required'   // 402 — subscription required
+  | 'network_error'      // fetch failed (no internet, DNS, timeout)
+  | 'insufficient_scope' // token is missing the required scope
+  | 'unknown';           // unexpected HTTP status
+```
+
 #### `PulsoidTokenError`
 
 Thrown by `connect()` and emitted by the `'token-error'` event during reconnection.
 
 ```typescript
 type PulsoidTokenError = {
+  type: PulsoidTokenErrorType;
   code: number;
   message: string;
 };
 ```
 
-| Code | Message | Description |
-| --- | --- | --- |
-| `7005` | `token_not_found` | Token is invalid or does not exist |
-| `7006` | `token_expired` | Token has expired |
-| `7007` | `premium_required` | Premium subscription required |
-| `7008` | `insufficient_scope` | Token is missing the required scope (`data:heart_rate:read` or `data:room:read`) |
+| Type | Code | Message | Retriable | Description |
+| --- | --- | --- | --- | --- |
+| `'forbidden'` | `7005` | `token_not_found` | No | Token is invalid or does not exist |
+| `'forbidden'` | `7006` | `token_expired` | No | Token has expired |
+| `'forbidden'` | `7007` | `premium_required` | No | Token rejected by server |
+| `'payment_required'` | varies | varies | Yes | Subscription/payment required |
+| `'insufficient_scope'` | `7008` | `insufficient_scope` | No | Token is missing the required scope (`data:heart_rate:read` or `data:room:read`) |
+| `'network_error'` | `0` | `Network request failed...` | Yes | No internet connection or network failure |
+| `'unknown'` | varies | varies | Yes | Unexpected HTTP error |
+
+**Retriable** errors (`network_error`, `payment_required`, `unknown`) will keep reconnecting during auto-reconnect. **Non-retriable** errors (`forbidden`, `insufficient_scope`) stop reconnection immediately.
 
 ---
 
@@ -437,7 +455,9 @@ Auto-reconnection is **enabled by default** with exponential backoff.
 3. A `'reconnect'` event is emitted with `{ attempt }` (1-indexed).
 4. The token is re-validated via HTTP.
 5. If the token is valid, a new WebSocket connection opens.
-6. If the token is invalid, a `'token-error'` event is emitted and reconnection **stops**.
+6. If validation fails, a `'token-error'` event is emitted.
+   - **Retriable** errors (`network_error`, `payment_required`, `unknown`) — reconnection **continues**.
+   - **Non-retriable** errors (`forbidden`, `insufficient_scope`) — reconnection **stops**.
 7. If the attempt limit is reached, reconnection **stops**.
 8. On successful reconnection, the attempt counter resets.
 
@@ -479,7 +499,9 @@ socket.on('reconnect', (e) => {
 });
 
 socket.on('token-error', (e) => {
-  console.error(`Reconnection stopped — token error ${e.code}: ${e.message}`);
+  console.error(`Token error [${e.type}]: ${e.code} — ${e.message}`);
+  // Retriable errors (network_error, payment_required, unknown) will keep reconnecting.
+  // Non-retriable errors (forbidden, insufficient_scope) stop reconnection.
 });
 ```
 
@@ -521,7 +543,10 @@ create() → connect() → [token validation] → [WebSocket open]
                     ┌────┴────┐
                     ▼         ▼
                  'open'  'token-error'
-                              (stops)
+                         ┌────┴────┐
+                         ▼         ▼
+                    (retriable) (non-retriable)
+                    continues     stops
 ```
 
 ### `isOnline()` behavior (standard mode only)
@@ -553,20 +578,23 @@ try {
   await socket.connect();
 } catch (error) {
   // error is PulsoidTokenError
-  console.error(`Connection failed: ${error.code} — ${error.message}`);
+  console.error(`Connection failed [${error.type}]: ${error.code} — ${error.message}`);
 
-  switch (error.code) {
-    case 7005: // token_not_found
-      console.error('Token does not exist. Check your token value.');
+  switch (error.type) {
+    case 'forbidden':
+      console.error('Token is invalid, expired, or revoked.');
       break;
-    case 7006: // token_expired
-      console.error('Token has expired. Obtain a new one.');
+    case 'payment_required':
+      console.error('A Pulsoid subscription is required.');
       break;
-    case 7007: // premium_required
-      console.error('A Pulsoid premium subscription is required.');
-      break;
-    case 7008: // insufficient_scope
+    case 'insufficient_scope':
       console.error('Token is missing the required scope.');
+      break;
+    case 'network_error':
+      console.error('No internet connection.');
+      break;
+    case 'unknown':
+      console.error('Unexpected server error.');
       break;
   }
 }

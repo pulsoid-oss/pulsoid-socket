@@ -1,6 +1,11 @@
 import WS from 'jest-websocket-mock';
 import PulsoidSocket from './index';
-import { flushPromises, mockFetchSuccess, mockFetchError } from './test-utils';
+import {
+  flushPromises,
+  mockFetchSuccess,
+  mockFetchError,
+  mockFetchNetworkError,
+} from './test-utils';
 
 const TEST_TOKEN = 'token';
 let webSocketServerMock: WS;
@@ -727,6 +732,7 @@ describe('Pusloid Socket', () => {
       pulsocket = PulsoidSocket.create(TEST_TOKEN);
 
       await expect(pulsocket.connect()).rejects.toEqual({
+        type: 'forbidden',
         code: 7005,
         message: 'token_not_found',
       });
@@ -740,6 +746,7 @@ describe('Pusloid Socket', () => {
       pulsocket = PulsoidSocket.create(TEST_TOKEN);
 
       await expect(pulsocket.connect()).rejects.toEqual({
+        type: 'forbidden',
         code: 7006,
         message: 'token_expired',
       });
@@ -753,8 +760,51 @@ describe('Pusloid Socket', () => {
       pulsocket = PulsoidSocket.create(TEST_TOKEN);
 
       await expect(pulsocket.connect()).rejects.toEqual({
+        type: 'forbidden',
         code: 7007,
         message: 'premium_required',
+      });
+
+      expect(pulsocket.isConnected()).toBe(false);
+    });
+
+    it('should reject connect() with payment_required type on 402', async () => {
+      mockFetchError(7010, 'payment_required', 402);
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+
+      await expect(pulsocket.connect()).rejects.toEqual({
+        type: 'payment_required',
+        code: 7010,
+        message: 'payment_required',
+      });
+
+      expect(pulsocket.isConnected()).toBe(false);
+    });
+
+    it('should reject connect() with network_error type when fetch fails', async () => {
+      mockFetchNetworkError();
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+
+      await expect(pulsocket.connect()).rejects.toEqual({
+        type: 'network_error',
+        code: 0,
+        message: 'Network request failed. Check your internet connection.',
+      });
+
+      expect(pulsocket.isConnected()).toBe(false);
+    });
+
+    it('should reject connect() with unknown type on unexpected status', async () => {
+      mockFetchError(9999, 'server_error', 500);
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+
+      await expect(pulsocket.connect()).rejects.toEqual({
+        type: 'unknown',
+        code: 9999,
+        message: 'server_error',
       });
 
       expect(pulsocket.isConnected()).toBe(false);
@@ -793,8 +843,9 @@ describe('Pusloid Socket', () => {
       pulsocket = PulsoidSocket.create(TEST_TOKEN);
 
       await expect(pulsocket.connect()).rejects.toEqual({
+        type: 'insufficient_scope',
         code: 7008,
-        message: 'insufficient_scope',
+        message: 'insufficient_scope: required scope "data:heart_rate:read" is missing',
       });
 
       expect(pulsocket.isConnected()).toBe(false);
@@ -829,9 +880,125 @@ describe('Pusloid Socket', () => {
       await flushPromises();
 
       expect(mockTokenError).toHaveBeenCalledWith({
+        type: 'forbidden',
         code: 7006,
         message: 'token_expired',
       });
+      expect(mockOnReconnect).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+    });
+
+    it('should keep reconnecting on network_error (retriable)', async () => {
+      vi.useFakeTimers();
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
+        reconnect: { enable: true },
+      });
+      const mockTokenError = vi.fn();
+      const mockOnReconnect = vi.fn();
+
+      pulsocket.on('token-error', mockTokenError);
+      pulsocket.on('reconnect', mockOnReconnect);
+
+      await pulsocket.connect();
+      vi.runAllTimers();
+      await waitForConnection();
+
+      mockFetchNetworkError();
+
+      webSocketServerMock.close({ code: 1006, reason: '', wasClean: false });
+      await flushPromises();
+
+      // First reconnect attempt
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+
+      expect(mockTokenError).toHaveBeenCalledWith({
+        type: 'network_error',
+        code: 0,
+        message: 'Network request failed. Check your internet connection.',
+      });
+
+      // Should schedule another reconnect
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+
+      expect(mockOnReconnect).toHaveBeenCalledTimes(2);
+      vi.useRealTimers();
+    });
+
+    it('should keep reconnecting on payment_required (retriable)', async () => {
+      vi.useFakeTimers();
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
+        reconnect: { enable: true },
+      });
+      const mockTokenError = vi.fn();
+      const mockOnReconnect = vi.fn();
+
+      pulsocket.on('token-error', mockTokenError);
+      pulsocket.on('reconnect', mockOnReconnect);
+
+      await pulsocket.connect();
+      vi.runAllTimers();
+      await waitForConnection();
+
+      mockFetchError(7010, 'payment_required', 402);
+
+      webSocketServerMock.close({ code: 1006, reason: '', wasClean: false });
+      await flushPromises();
+
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+
+      expect(mockTokenError).toHaveBeenCalledWith({
+        type: 'payment_required',
+        code: 7010,
+        message: 'payment_required',
+      });
+
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+
+      expect(mockOnReconnect).toHaveBeenCalledTimes(2);
+      vi.useRealTimers();
+    });
+
+    it('should stop reconnecting on insufficient_scope (non-retriable)', async () => {
+      vi.useFakeTimers();
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
+        reconnect: { enable: true },
+      });
+      const mockTokenError = vi.fn();
+      const mockOnReconnect = vi.fn();
+
+      pulsocket.on('token-error', mockTokenError);
+      pulsocket.on('reconnect', mockOnReconnect);
+
+      await pulsocket.connect();
+      vi.runAllTimers();
+      await waitForConnection();
+
+      mockFetchSuccess(['data:room:read']);
+
+      webSocketServerMock.close({ code: 1006, reason: '', wasClean: false });
+      await flushPromises();
+
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+
+      expect(mockTokenError).toHaveBeenCalledWith({
+        type: 'insufficient_scope',
+        code: 7008,
+        message: 'insufficient_scope: required scope "data:heart_rate:read" is missing',
+      });
+      expect(mockOnReconnect).toHaveBeenCalledTimes(1);
+
+      // Should NOT schedule another reconnect
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+
       expect(mockOnReconnect).toHaveBeenCalledTimes(1);
       vi.useRealTimers();
     });

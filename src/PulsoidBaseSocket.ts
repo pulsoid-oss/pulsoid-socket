@@ -1,6 +1,7 @@
 import type {
   EventCallback,
   PulsoidTokenError,
+  PulsoidTokenErrorType,
   ReconnectOptions,
   ResolvedReconnectOptions,
 } from './types';
@@ -134,6 +135,13 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
         })
         .catch((error: PulsoidTokenError) => {
           this.emitTokenError(error);
+
+          if (
+            PulsoidBaseSocket.isRetriableTokenError(error) &&
+            this.reconnectTryCount < this.reconnectOptions.reconnectAttempts
+          ) {
+            this.reconnect();
+          }
         });
     }, this.getReconnectInterval());
   }
@@ -148,18 +156,48 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
     return Math.min(interval, reconnectMaxInterval);
   }
 
-  protected async validateToken(): Promise<void> {
-    const response = await fetch(
-      'https://dev.pulsoid.net/api/v1/token/validate',
-      {
-        headers: { Authorization: `Bearer ${this.token}` },
-      }
+  private static isRetriableTokenError(error: PulsoidTokenError): boolean {
+    return (
+      error.type === 'network_error' ||
+      error.type === 'payment_required' ||
+      error.type === 'unknown'
     );
+  }
+
+  private static getTokenErrorType(status: number): PulsoidTokenErrorType {
+    switch (status) {
+      case 402:
+        return 'payment_required';
+      case 403:
+        return 'forbidden';
+      default:
+        return 'unknown';
+    }
+  }
+
+  protected async validateToken(): Promise<void> {
+    let response: Response;
+    try {
+      response = await fetch(
+        'https://dev.pulsoid.net/api/v1/token/validate',
+        {
+          headers: { Authorization: `Bearer ${this.token}` },
+        }
+      );
+    } catch {
+      const error: PulsoidTokenError = {
+        type: 'network_error',
+        code: 0,
+        message: 'Network request failed. Check your internet connection.',
+      };
+      throw error;
+    }
 
     const body = await response.json();
 
     if (!response.ok) {
       const error: PulsoidTokenError = {
+        type: PulsoidBaseSocket.getTokenErrorType(response.status),
         code: body.error_code,
         message: body.error_message,
       };
@@ -169,8 +207,9 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
     const scopes: string[] = body.scopes ?? [];
     if (!scopes.includes(this.requiredScope)) {
       const error: PulsoidTokenError = {
+        type: 'insufficient_scope',
         code: 7008,
-        message: 'insufficient_scope',
+        message: `insufficient_scope: required scope "${this.requiredScope}" is missing`,
       };
       throw error;
     }

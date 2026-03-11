@@ -11,10 +11,19 @@ export const mockFetchSuccess = (scopes: string[] = []) => {
   });
 };
 
-export const mockFetchError = (errorCode: number, errorMessage: string) => {
+export const mockFetchError = (
+  errorCode: number,
+  errorMessage: string,
+  status = 403
+) => {
   global.fetch = vi.fn().mockResolvedValue({
     ok: false,
+    status,
     json: () =>
       Promise.resolve({ error_code: errorCode, error_message: errorMessage }),
   });
+};
+
+export const mockFetchNetworkError = () => {
+  global.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 };
