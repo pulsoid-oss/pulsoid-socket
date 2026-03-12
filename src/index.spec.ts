@@ -782,6 +782,20 @@ describe('Pusloid Socket', () => {
       expect(pulsocket.isConnected()).toBe(false);
     });
 
+    it('should reject connect() with unauthorized type on 401', async () => {
+      mockFetchError(7009, 'unauthorized', 401);
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+
+      await expect(pulsocket.connect()).rejects.toEqual({
+        type: 'unauthorized',
+        code: 7009,
+        message: 'unauthorized',
+      });
+
+      expect(pulsocket.isConnected()).toBe(false);
+    });
+
     it('should reject connect() with network_error type when fetch fails', async () => {
       mockFetchNetworkError();
       openConnection();
@@ -1001,6 +1015,115 @@ describe('Pusloid Socket', () => {
 
       expect(mockOnReconnect).toHaveBeenCalledTimes(1);
       vi.useRealTimers();
+    });
+
+    it('should stop reconnecting on unauthorized (non-retriable)', async () => {
+      vi.useFakeTimers();
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
+        reconnect: { enable: true },
+      });
+      const mockTokenError = vi.fn();
+      const mockOnReconnect = vi.fn();
+
+      pulsocket.on('token-error', mockTokenError);
+      pulsocket.on('reconnect', mockOnReconnect);
+
+      await pulsocket.connect();
+      vi.runAllTimers();
+      await waitForConnection();
+
+      mockFetchError(7009, 'unauthorized', 401);
+
+      webSocketServerMock.close({ code: 1006, reason: '', wasClean: false });
+      await flushPromises();
+
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+
+      expect(mockTokenError).toHaveBeenCalledWith({
+        type: 'unauthorized',
+        code: 7009,
+        message: 'unauthorized',
+      });
+      expect(mockOnReconnect).toHaveBeenCalledTimes(1);
+
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+
+      expect(mockOnReconnect).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+    });
+
+    it('should emit close after non-retriable token error stops reconnection', async () => {
+      vi.useFakeTimers();
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
+        reconnect: { enable: true },
+      });
+      const mockOnClose = vi.fn();
+      const mockTokenError = vi.fn();
+
+      pulsocket.on('close', mockOnClose);
+      pulsocket.on('token-error', mockTokenError);
+
+      await pulsocket.connect();
+      vi.runAllTimers();
+      await waitForConnection();
+
+      mockFetchError(7006, 'token_expired');
+
+      webSocketServerMock.close({ code: 1006, reason: '', wasClean: false });
+      await flushPromises();
+
+      expect(mockOnClose).not.toHaveBeenCalled();
+
+      vi.runOnlyPendingTimers();
+      await flushPromises();
+
+      expect(mockTokenError).toHaveBeenCalledTimes(1);
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+    });
+
+    it('should emit close when disconnect() is called during reconnection', async () => {
+      vi.useFakeTimers();
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN, {
+        reconnect: { enable: true },
+      });
+      const mockOnClose = vi.fn();
+      const mockOnReconnect = vi.fn();
+
+      pulsocket.on('close', mockOnClose);
+      pulsocket.on('reconnect', mockOnReconnect);
+
+      await pulsocket.connect();
+      vi.runAllTimers();
+      await waitForConnection();
+
+      webSocketServerMock.close({ code: 1006, reason: '', wasClean: false });
+      await flushPromises();
+
+      expect(mockOnClose).not.toHaveBeenCalled();
+
+      pulsocket.disconnect();
+
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
+      vi.useRealTimers();
+    });
+
+    it('should not emit close if connection was never opened', async () => {
+      mockFetchError(7005, 'token_not_found');
+      openConnection();
+      pulsocket = PulsoidSocket.create(TEST_TOKEN);
+      const mockOnClose = vi.fn();
+
+      pulsocket.on('close', mockOnClose);
+
+      await pulsocket.connect().catch(() => {});
+
+      expect(mockOnClose).not.toHaveBeenCalled();
     });
 
   });

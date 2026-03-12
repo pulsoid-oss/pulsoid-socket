@@ -2,6 +2,7 @@
 export type EventCallback = (...args: any[]) => void;
 
 export type PulsoidTokenErrorType =
+  | 'unauthorized'
   | 'forbidden'
   | 'payment_required'
   | 'network_error'

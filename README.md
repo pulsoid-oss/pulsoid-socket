@@ -402,6 +402,7 @@ type PulsoidRoomSocketEventType =
 
 ```typescript
 type PulsoidTokenErrorType =
+  | 'unauthorized'       // 401 — missing or malformed token
   | 'forbidden'          // 403 — invalid, expired, or revoked token
   | 'payment_required'   // 402 — subscription required
   | 'network_error'      // fetch failed (no internet, DNS, timeout)
@@ -423,15 +424,16 @@ type PulsoidTokenError = {
 
 | Type | Code | Message | Retriable | Description |
 | --- | --- | --- | --- | --- |
+| `'unauthorized'` | varies | varies | No | 401 — missing or malformed token |
 | `'forbidden'` | `7005` | `token_not_found` | No | Token is invalid or does not exist |
 | `'forbidden'` | `7006` | `token_expired` | No | Token has expired |
 | `'forbidden'` | `7007` | `premium_required` | No | Token rejected by server |
-| `'payment_required'` | varies | varies | Yes | Subscription/payment required |
+| `'payment_required'` | varies | varies | Yes | 402 — subscription/payment required |
 | `'insufficient_scope'` | `7008` | `insufficient_scope` | No | Token is missing the required scope (`data:heart_rate:read` or `data:room:read`) |
 | `'network_error'` | `0` | `Network request failed...` | Yes | No internet connection or network failure |
 | `'unknown'` | varies | varies | Yes | Unexpected HTTP error |
 
-**Retriable** errors (`network_error`, `payment_required`, `unknown`) will keep reconnecting during auto-reconnect. **Non-retriable** errors (`forbidden`, `insufficient_scope`) stop reconnection immediately.
+**Retriable** errors (`network_error`, `payment_required`, `unknown`) will keep reconnecting during auto-reconnect. **Non-retriable** errors (`unauthorized`, `forbidden`, `insufficient_scope`) stop reconnection immediately.
 
 ---
 
@@ -581,6 +583,9 @@ try {
   console.error(`Connection failed [${error.type}]: ${error.code} — ${error.message}`);
 
   switch (error.type) {
+    case 'unauthorized':
+      console.error('Missing or malformed token.');
+      break;
     case 'forbidden':
       console.error('Token is invalid, expired, or revoked.');
       break;

@@ -171,6 +171,8 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
 
   private static getTokenErrorType(status: number): PulsoidTokenErrorType {
     switch (status) {
+      case 401:
+        return 'unauthorized';
       case 402:
         return 'payment_required';
       case 403:
