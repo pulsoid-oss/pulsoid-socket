@@ -20,6 +20,8 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private reconnectOptions: ResolvedReconnectOptions;
   private eventTypeToEventHandlersMap: Record<string, EventCallback[]>;
+  private hasOpened = false;
+  private lastCloseEvent: CloseEvent | null = null;
 
   protected abstract get url(): string;
   protected abstract getEventTypes(): TEventType[];
@@ -30,6 +32,7 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
   protected onDisconnect(): void {}
 
   private onOpenEventHandler = (event: Event) => {
+    this.hasOpened = true;
     this.emitEvent('open' as TEventType, event);
 
     if (this.reconnectTryCount > 0) {
@@ -38,14 +41,12 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
   };
 
   private onCloseEventHandler = (event: CloseEvent) => {
+    this.lastCloseEvent = event;
+
     const isReconnectInProgress = this.reconnectTryCount > 0;
 
     if (!isReconnectInProgress) {
       this.onFirstCloseCleanup();
-
-      this.emitEvent('close' as TEventType, event);
-
-      this.clearEventHandlers();
     }
 
     if (
@@ -53,8 +54,8 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
       this.reconnectTryCount < this.reconnectOptions.reconnectAttempts
     ) {
       this.reconnect();
-    } else if (isReconnectInProgress) {
-      this.clearEventHandlers();
+    } else {
+      this.emitCloseAndCleanup();
     }
 
     this.shouldReconnect = this.reconnectOptions.enable;
@@ -130,6 +131,8 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
               this.reconnectTryCount < this.reconnectOptions.reconnectAttempts
             ) {
               this.reconnect();
+            } else {
+              this.emitCloseAndCleanup();
             }
           }
         })
@@ -141,6 +144,8 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
             this.reconnectTryCount < this.reconnectOptions.reconnectAttempts
           ) {
             this.reconnect();
+          } else {
+            this.emitCloseAndCleanup();
           }
         });
     }, this.getReconnectInterval());
@@ -215,6 +220,14 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
     }
   }
 
+  private emitCloseAndCleanup() {
+    if (this.hasOpened) {
+      this.emitEvent('close' as TEventType, this.lastCloseEvent);
+      this.hasOpened = false;
+    }
+    this.clearEventHandlers();
+  }
+
   private emitTokenError(error: PulsoidTokenError) {
     this.emitEvent('token-error' as TEventType, error);
   }
@@ -283,7 +296,14 @@ abstract class PulsoidBaseSocket<TEventType extends string> {
     this.resetReconnectData();
     this.shouldReconnect = false;
 
-    this.websocket?.close();
+    if (
+      this.websocket?.readyState === WebSocket.OPEN ||
+      this.websocket?.readyState === WebSocket.CONNECTING
+    ) {
+      this.websocket.close();
+    } else {
+      this.emitCloseAndCleanup();
+    }
   }
 
   isConnected = () => {

@@ -682,7 +682,7 @@ describe('Pusloid Socket', () => {
       await flushPromises();
 
       expect(mockOnReconnect).toHaveBeenCalledTimes(1);
-      expect(mockOnClose).toHaveBeenCalledTimes(1);
+      expect(mockOnClose).toHaveBeenCalledTimes(0);
 
       // Fire second reconnect
       vi.runOnlyPendingTimers();
@@ -691,7 +691,7 @@ describe('Pusloid Socket', () => {
       await flushPromises();
 
       expect(mockOnReconnect).toHaveBeenCalledTimes(2);
-      expect(mockOnClose).toHaveBeenCalledTimes(1);
+      expect(mockOnClose).toHaveBeenCalledTimes(0);
 
       // Fire third reconnect
       vi.runOnlyPendingTimers();
@@ -700,7 +700,7 @@ describe('Pusloid Socket', () => {
       await flushPromises();
 
       expect(mockOnReconnect).toHaveBeenCalledTimes(3);
-      expect(mockOnClose).toHaveBeenCalledTimes(1);
+      expect(mockOnClose).toHaveBeenCalledTimes(0);
     });
 
     it('should not reconnect if reconnect is disabled', async () => {
