@@ -219,7 +219,7 @@ const room = PulsoidRoomSocket.create(token, roomId, options?);
 | `'heart-rate'` | `(data: PulsoidHeartRateMessage) => void` | Heart rate data received. `data.heartRate` is BPM, `data.measuredAt` is a Unix timestamp. |
 | `'online'` | `() => void` | Heart rate monitor started sending data. Fires on the first message received. |
 | `'offline'` | `() => void` | No data received from the monitor for 30 seconds (debounced). Also fires immediately when the connection closes if the monitor was online. |
-| `'close'` | `(event: CloseEvent) => void` | WebSocket connection closed. Fires before auto-reconnect kicks in. |
+| `'close'` | `(event: CloseEvent) => void` | Connection fully closed. Only fires after all reconnection attempts have ended (or if reconnect is disabled). Never fires during reconnection. |
 | `'error'` | `(event: Event) => void` | WebSocket error occurred. |
 | `'reconnect'` | `(e: { attempt: number }) => void` | Auto-reconnect attempt starting. `attempt` is 1-indexed. |
 | `'token-error'` | `(e: PulsoidTokenError) => void` | Token validation failed during a reconnect attempt. Non-retriable errors (`forbidden`, `insufficient_scope`) stop reconnection; retriable errors (`network_error`, `payment_required`, `unknown`) keep retrying. See [Error types](#error-types). |
@@ -528,15 +528,12 @@ create() → connect() → [token validation] → [WebSocket open]
                                     │
                               (connection lost)
                                     │
-                                    ▼
-                                 'close'
-                                    │
                          ┌──────────┴──────────┐
                          ▼                      ▼
                    (reconnect on)         (reconnect off)
-                         │                    (done)
-                         ▼
-                    'reconnect'
+                         │                      │
+                         ▼                      ▼
+                    'reconnect'              'close'
                          │
                   [token validation]
                          │
@@ -546,7 +543,10 @@ create() → connect() → [token validation] → [WebSocket open]
                          ┌────┴────┐
                          ▼         ▼
                     (retriable) (non-retriable)
-                    continues     stops
+                    continues    'close'
+
+Event sequence as regexp:
+  open (reconnect (token-error | open))* close
 ```
 
 ### `isOnline()` behavior (standard mode only)
@@ -562,8 +562,8 @@ create() → connect() → [token validation] → [WebSocket open]
 Calling `disconnect()`:
 1. Cancels any pending reconnection timers.
 2. Disables auto-reconnect for this connection.
-3. Closes the WebSocket.
-4. The `'close'` event fires, but no reconnect will follow.
+3. Closes the WebSocket (or finalizes if already closed during reconnection).
+4. The `'close'` event fires.
 
 ---
 
@@ -613,7 +613,7 @@ socket.on('token-error', (error) => {
 
 ### WebSocket errors
 
-WebSocket-level errors are emitted via the `'error'` event. These are typically followed by a `'close'` event and auto-reconnection:
+WebSocket-level errors are emitted via the `'error'` event. These typically trigger auto-reconnection (the `'close'` event is deferred until reconnection ends):
 
 ```javascript
 socket.on('error', (event) => {
